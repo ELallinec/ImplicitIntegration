@@ -36,5 +36,5 @@ jobs:
           CLEAN: true
           SINGLE_COMMIT: true
           FOLDER: out
-          GIT_CONFIG_NAME: ELallienc
+          GIT_CONFIG_NAME: ELallinec
           GIT_CONFIG_EMAIL: ewen.lallinec@universite-paris-saclay.fr
