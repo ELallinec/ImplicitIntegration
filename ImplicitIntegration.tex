@@ -1,406 +1,1331 @@
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
+
+% Layout
 \usepackage{fullpage}
+
+% Mathematics
 \usepackage{amsmath,amssymb,amsthm}
-\usepackage{xcolor,soul}
-\usepackage{mparhack}
-\usepackage[utf8]{inputenc}
 \usepackage{dsfont}
-\usepackage{graphicx}
-\usepackage{tikz}
-\usepackage{float}
-\usepackage{subfig}
-\usepackage{hyperref}
-\usepackage{stmaryrd}
-\usepackage{esint}
-\usepackage{braket}
-\usepackage{verbatim}
-\usepackage{thmtools}
-\usepackage{relsize}
-\SetSymbolFont{stmry}{bold}{U}{stmry}{m}{n}
 \usepackage{bm}
+\usepackage{stmaryrd}
+\SetSymbolFont{stmry}{bold}{U}{stmry}{m}{n}
 
-\newcommand{\cmark}{\ding{51}}%
-\newcommand{\xmark}{\ding{55}}
-\newcommand{\subfigureautorefname}{\figureautorefname}
-\declaretheorem[numberwithin=section,name=Theorem,refname={Theorem,Theorems}, Refname={Theorem,Theorems}]{theorem}
-\declaretheorem[numberwithin=section,name=Lemma, refname={Lemma,Lemmas},Refname={Lemma,Lemmas}]{lemma}
-\declaretheorem[numberwithin=section,name=Corollary, refname={Corollary,Corollaries},Refname={Corollary,Corollaries}]{corollary}
-\declaretheorem[style=remark]{Sketch of proof}
-\declaretheorem[numbered=no, name=Remark]{remark}
-\newcommand{\annotation}[1]{\marginpar{\small\color{red}#1}}
+% Graphics
+\usepackage{graphicx}
+\usepackage{float}
 
+% Colors
+\usepackage{xcolor}
+\definecolor{darkred}{RGB}{200,0,0}
+\definecolor{darkgreen}{RGB}{0,150,0}
+\definecolor{darkblue}{RGB}{0,0,200}
+
+% Bibliography
+\usepackage[style=alphabetic,giveninits=true]{biblatex}
+\renewbibmacro{in:}{}
+\addbibresource{Biblio.bib}
+
+% Hyperlinks (load late, before packages that depend on it)
+\usepackage[colorlinks=true, linkcolor=darkred, citecolor=darkgreen, urlcolor=darkblue,
+            linktocpage=true, bookmarks=true]{hyperref} \def\sectionautorefname{Section}
+            \def\subsectionautorefname{Subsection}
+
+% Post-hyperref packages
+\usepackage{subfig}
+\usepackage{thmtools}
+\usepackage{microtype}
+
+% Typography
+\numberwithin{equation}{section}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+% Theorem environments
+\declaretheorem[numberwithin=section,name=Theorem,refname={Theorem,Theorems},Refname={Theorem,Theorems}]{theorem}
+\declaretheorem[numberwithin=section,name=Lemma,refname={Lemma,Lemmas},Refname={Lemma,Lemmas}]{lemma}
+\declaretheorem[numberwithin=section,name=Corollary,refname={Corollary,Corollaries},Refname={Corollary,Corollaries}]{corollary}
+\declaretheorem[style=remark,name=Sketch of proof]{sketch}
+\declaretheorem[numbered=no,name=Remark]{remark}
+\declaretheorem[numberwithin=section,name=Assumption,refname={Assumption,Assumptions},Refname={Assumption,Assumptions}]{assumption}
+% Custom macros
+\newcommand{\EL}[1]{\textcolor{darkred}{\textbf{Ewen (\today): }#1}}
+
+% chktex-file 3  (math subscripts on closing parens/brackets: standard notation)
+% chktex-file 35 (\mathrm{max} is not the \max operator)
 \title{Implicit Integration for Density of States}
 \date{}
-\author{Ewen Lallinec$^1$}
+\author{Luiz M.~Faria\thanks{POEMS, CNRS, Inria, ENSTA, Institut Polytechnique de Paris,
+91120 Palaiseau, France}, Ewen Lallinec\thanks{Université Paris-Saclay, CNRS, Laboratoire
+de mathématiques d'Orsay, 91405, Orsay, France}, Antoine Levitt\footnotemark[2]}
 
 \begin{document}
 \maketitle
-\footnotetext[1]{Université Paris-Saclay, CNRS, Laboratoire de mathématiques d’Orsay, 91405, Orsay, France}
 
-\section{Quantum formalism}
-\subsection{Periodic infinite crystal}
-Let $\mathcal{R}$ be a discrete periodic lattice of $\mathbb{R}^d$ (for $d \in \left\{1,\dots, 3\right\}$)
-\begin{equation}
-	\mathcal{R} = \left\{\sum_{i=1}^d n_i \mathbf{a}_i= A\mathbf{n} , \, n_i \in \mathbb{Z} \right\},
-\end{equation}
-where $A=(\mathbf{a}_1\dots\mathbf{a}_d) \in \mathbb{R}^{d\times d}$ is non-degenerate.\\
-We denote $\Gamma$ its unit cell (the Wigner-Seitz cell centered around $\mathbf{0}$).
-\begin{equation}
-	\Gamma = \left\{\mathbf{r} \in  \mathbb{R}^d, \lVert \mathbf{r} \rVert_ 2\leq\lVert \mathbf{r}- \mathbf{R}\rVert_2, \ \forall \ \mathbf{R} \in  \mathcal{R}\backslash\{\mathbf{0}\}\right\}.
-\end{equation}
-Now let's define $\mathcal{R}^*$ the reciprocal lattice associated to $\mathcal{R}$
+\section{Periodic Hamiltonians and the density of states}\label{sec:framework}
 
-\begin{equation}
-	\mathcal{R}^* = \left\{\sum_{i=1}^d n_i \mathbf{b}_i=B\mathbf{n}, \, n_i \in \mathbb{Z}\right\},
-\end{equation}
-where $A^\intercal  B= 2\pi I$.
+This section introduces the quantum framework used throughout the paper.
 
-We now define the Brillouin zone $\mathcal{B}$ as the Wigner-Seitz cell centered around $\mathbf{0}$ in the reciprocal lattice
-\begin{equation}
-	\mathcal{B} = \left\{\mathbf{k} \in  \mathbb{R}^d, \lVert \mathbf{k} \rVert_ 2\leq\lVert \mathbf{k}- \mathbf{G}\rVert_2, \ \forall \ \mathbf{G} \in  \mathcal{R}^*\backslash\{\mathbf{0}\}\right\}
-\end{equation}
-\subsection{Supercell method}
-For $L \in \mathbb{N}$, we define the supercell as
-\begin{equation}
-	\Gamma_L=L\Gamma,
-\end{equation}
-corresponding to $L$ replication of the unit cell along each lattice direction.
-Now we naturally define the truncated lattice $\mathcal{R}_L$ as
-\begin{equation}
-	\mathcal{R}_L = \mathcal{R}\cap \Gamma_L.
-\end{equation}
-This structure induces a discretization of the Brillouin zone by exploiting the duality between $\mathcal{R}$ and $\mathcal{R}^*$. We define this discretized Brillouin zone $\mathcal{B}_L$ as
-\begin{equation}
-	\mathcal{B}_L = \left\{ \sum_{i=1}^d \frac{n_i}{L} \mathbf{b}_i \;\middle|\; n_i \in \left\{-\left\lfloor\frac{L}{2}\right\rfloor, \ldots, \left\lfloor\frac{L}{2} - 1\right\rfloor \right\} \right\}.
-\end{equation}
+\subsection{Direct and reciprocal lattices}\label{sec:lattices}
 
-\subsection{Hamiltonian and bands}
-Now we consider a Bloch Hamiltonian defined as the truncated Bloch transform of given real space Hamiltonians $H_\mathbf{R}$
+Let \(d \in \{1,2,3\}\) be the spatial dimension. A \emph{lattice} of \(\mathbb{R}^d\) is
+a discrete subgroup of the form
 \begin{equation}
-	H:\left\{
-	\begin{matrix}\mathcal{B} \rightarrow \mathbb{C}^{M \times M} \\
-		\displaystyle{\mathbf{k} \mapsto \sum_{\mathbf{R} \in \mathcal{R}_L} \mathrm{e}^{i \mathbf{k} \cdot \mathbf{R}} H_{\mathbf{R}}}\end{matrix}\right. .
+    \mathcal{R} = \left\{ A\mathbf{n} : \mathbf{n} \in \mathbb{Z}^d \right\}
+    \cong \mathbb{Z}^d,
 \end{equation}
-This Hamiltonian is $\mathcal{R}^*$-periodic and is a Hermitian matrix which verifies the time-independent Schrödinger equation at each $\mathbf{k}$ of $\mathcal{B}$
+where \(A = (\mathbf{a}_1\cdots\mathbf{a}_d) \in \mathbb{R}^{d\times d}\) is non-singular.
+Its columns \(\mathbf{a}_i\) are the \emph{primitive vectors} of \(\mathcal{R}\). The
+associated \emph{unit cell} (or Wigner-Seitz cell) is the set of points of
+\(\mathbb{R}^d\) that are closer to the origin than to any other lattice site:
+\begin{equation}
+    \Gamma = \left\{ \mathbf{r} \in \mathbb{R}^d :
+    \|\mathbf{r}\|_2 \leq \|\mathbf{r}-\mathbf{R}\|_2
+    \text{ for all } \mathbf{R} \in \mathcal{R}\setminus\{\mathbf{0}\}
+    \right\}.
+\end{equation}
+By construction, \(\Gamma\) tiles \(\mathbb{R}^d\) under translation by \(\mathcal{R}\).
 
+The \emph{reciprocal lattice} \(\mathcal{R}^*\) is the set of vectors \(\mathbf{G} \in
+\mathbb{R}^d\) such that \(\mathrm{e}^{i\mathbf{G}\cdot\mathbf{R}} = 1\) for every
+\(\mathbf{R} \in \mathcal{R}\). Equivalently,
 \begin{equation}
-	H(\mathbf{k}) \psi_{m}(\mathbf{k}) = \varepsilon_{m} (\mathbf{k}) \psi_{m}(\mathbf{k}),
+    \mathcal{R}^* = \left\{ B\mathbf{n} : \mathbf{n} \in \mathbb{Z}^d \right\},
+    A^\intercal B = 2\pi I.
 \end{equation}
-where $\psi_m$ and $\varepsilon_m$ respectively are the m-th eigenvectors and eigenvalues of $H$.
+The Wigner-Seitz cell of \(\mathcal{R}^*\), called the \emph{Brillouin zone}, is
+\begin{equation}
+    \mathcal{B} = \left\{ \mathbf{k} \in \mathbb{R}^d :
+    \|\mathbf{k}\|_2 \leq \|\mathbf{k}-\mathbf{G}\|_2
+    \text{ for all } \mathbf{G} \in \mathcal{R}^*\setminus\{\mathbf{0}\}
+    \right\}.
+\end{equation}
+For the standard cubic lattice \(\mathcal{R} = \mathbb{Z}^d\), \(\mathcal{B} = [-\pi,
+    \pi]^d\).
 
-\subsection{Density of states}
-The Density of States (DOS) is defined as
-\begin{equation}
-	D(E) = \frac{1}{|\mathcal{B}|}\sum_{m=1}^M\int_{\mathcal{B}}\delta(E-\varepsilon_m(\mathbf{k}))\mathrm{d}\mathbf{k}
-\end{equation}
-A change of variable (co-area formula) gives another expression
-\begin{equation}\label{eq:dosgrad}
-	D(E)=\frac{1}{|\mathcal{B}|}\sum_{m=1}^M\int_{S_m(E)} \frac{1}{|\nabla\varepsilon_{m}(\mathbf{k})|}\mathrm{d}\mathcal{H}^{d-1}(\mathbf{k})
-\end{equation}
-where $\mathrm{d}\mathcal{H}^{d-1}(\mathbf{k})$ is the Haussdorff measure of dimension $d-1$ and the $S_m(E)$ are isosurfaces of the m-th eigenvalue
-\begin{equation}
-	S_m(E) = \left\{\mathbf{k} \in \mathcal{B}, \varepsilon_{m}(\mathbf{k})=E \right\}.
-\end{equation}
-From~\autoref{eq:dosgrad}, we can define the DOS as a sum of integrals over implicitly defined surfaces, the $S_m(E)$. Therefore the method of implicit integration~\cite{saye_high-order_2015} can be meaningful if we manage to bound efficiently the different eigenvalues on intervals.
+\subsection{Bloch decomposition of a periodic Hamiltonian}\label{sec:bloch}
 
+We work in a tight-binding setting: the Hamiltonian \(H\) is a self-adjoint operator on
+the Hilbert space \(\mathcal{H}=\ell^2(\mathcal{R},\mathbb{C}^M)\), where \(M \geq 1\) is the number
+of internal degrees of freedom (typically orbitals) attached to each lattice site. The
+operator is described by a family of matrices \((H_\mathbf{R})_{\mathbf{R} \in
+    \mathcal{R}}\) in \(\mathbb{C}^{M\times M}\), encoding hopping amplitudes between sites
+separated by \(\mathbf{R}\), with \(H_{-\mathbf{R}} = H_\mathbf{R}^*\) (to ensure
+\(H(\mathbf{k})\) is Hermitian).
 
-\section{High-Order Quadrature Methods for Implicitly Defined Surfaces and Volumes in Hyperrectangles}
-The idea of this algorithm is to compute integrals of sufficiently smooth function $f$ on implicitly defined surfaces (with $U\subset \mathbb{R}^d$ a given hyperrectangle).
+Periodicity allows us to apply the \emph{Bloch transform}, which diagonalises translations
+and reduces the spectral problem for \(H\) on an infinite-dimensional space to a
+parametric family of finite-dimensional spectral problems indexed by \(\mathbf{k} \in
+\mathcal{B}\). For each \(\mathbf{k} \in \mathcal{B}\), define
 \begin{equation}
-	\int_{\Gamma\cap D} f
+    H(\mathbf{k}) = \sum_{\mathbf{R} \in \mathcal{R}}
+    \mathrm{e}^{i\mathbf{k}\cdot\mathbf{R}} H_\mathbf{R}
+    \in \mathbb{C}^{M\times M}.
+    \label{eq:bloch-transform}
 \end{equation}
-where $\Gamma$ is a surface defined implicitly $\Gamma = \{x \in \mathbb{R}^d \, | \, \phi(x)=0 \}$.
-\begin{comment}
+In practice the sum is finite, so \(H(\mathbf{k})\) is a trigonometric polynomial in
+\(\mathbf{k}\), hence an entire analytic function of \(\mathbf{k} \in \mathbb{C}^d\), and
+is \(\mathcal{R}^*\)-periodic. We denote its eigenvalues, ordered increasingly, by
 \begin{equation}
-	\Gamma=\{x:\phi(x)=0\} \ \mathrm{and}\ \Omega=\{x : \phi(x)<0\}
+    \varepsilon_1(\mathbf{k}) \leq \varepsilon_2(\mathbf{k}) \leq \cdots
+    \leq \varepsilon_M(\mathbf{k}),
 \end{equation}
+and refer to the maps \(\mathbf{k} \mapsto \varepsilon_n(\mathbf{k})\) as the \emph{energy
+    bands}. Each \(\varepsilon_n\) is analytic and \(\mathcal{R}^*\)-periodic, but
+generally only piecewise smooth: smoothness is lost at \emph{band crossings}, i.e.\ at
+points \(\mathbf{k}\) where two eigenvalues coincide.
 
-The first one is a volume integral, whereas the second one is a surface integral (respectively on spaces of dimension $d$ and $d-1$).
+\begin{remark}
+    The tight-binding setting is not restrictive in practice. Continuous Schrödinger
+    operators on \(\mathbb{R}^d\) with \(\mathcal{R}\)-periodic potentials admit a similar
+    Bloch decomposition. Truncating the resulting infinite spectrum to	the bands relevant
+    for the energy range of interest (e.g.\ via Wannier
+    interpolation~\cite{yates2007spectral}) yields a finite-dimensional model of the
+    form~\eqref{eq:bloch-transform}.
+\end{remark}
 
-\textbf{Applications}
-Globally level-set methods
-\begin{itemize}
-	\item Propagation of interfaces in computational physics
-	\item Embedded boundary methods to solve PDEs on curved domains
-	\item Jump conditions and singular source terms
-\end{itemize}
+\subsection{Supercell discretisation and the Monkhorst-Pack grid}\label{sec:supercell}
+\textcolor{red}{\textbf{Pas forcément utile dans le papier mais c'est important de
+        comprendre comment les intégrales de Brillouin sont calculées en pratique.}}
 
-\subsection{Usual approachs}
-\begin{itemize}
-	\item[-] (Numerically discrete) Delta or Heaviside functions
-		\begin{align}
-			\int_\Omega f & = \int_V f \delta(\phi) \Big|\nabla\phi\Big|\approx h^d \sum_i f(x_i)\delta_h(\phi(x_i))\Big|\nabla\phi(x_i)\Big|\label{eq:omega} \\
-			\int_\Gamma g & = \int_V g H(-\phi) \approx h^d \sum_i g(x_i) H_h(-\phi(x_i))\label{eq:gamma}
-		\end{align}
-		\begin{itemize}
-			\item[$\bullet$] Pros: simple to understand, to implement.
-			\item[$\bullet$] Cons: Works only for smooth surfaces, surfaces with boundaries. Highly dependent on the discretization and the approximation of $\delta$/$H$ (sometimes no convergence achieved).
-		\end{itemize}
-	\item[-] Divergence theorem to reduce recursively the problem to lower dimension integrals
-		\begin{equation}
-			\int_{\Omega\cap U}f= \int_{\Omega\cap U} \mathrm{div}(\mathbf{u}) = \int_{\partial(\Omega\cap U)}\mathbf{u}\cdot\mathbf{n}= \int_{\Gamma\cap U}\mathbf{u}\cdot\mathbf{n} +\int_{\Omega\cap \partial U}\mathbf{u}\cdot\mathbf{n}
-		\end{equation}
-		If we can choose $\tilde{\mathbf{u}}$ such that $\mathrm{div}(\tilde{\mathbf{u}})=0$ on $U$ and $\tilde{\mathbf{u}}\cdot\mathbf{n}=g$ on $\Gamma$ then
-		\begin{equation}
-			\int_{\Gamma\cap U}g=-\int_{\Omega\cap \partial U}\tilde{\mathbf{u}}\cdot\mathbf{n}
-		\end{equation}
-		\begin{itemize}
-			\item[$\bullet$] Pros: Reduces the dimension of the problem, recursive and easy to understand for most cases.
-			\item[$\bullet$] Cons: Doesn't work if $\Gamma\cap\partial U=\emptyset$ which depicts the facts that we can't always find a divergence-free $\tilde{\mathbf{u}}$. Moreover it needs to suppose that $g$ is smooth enough to be smoothly extended outside of $\Gamma$ and that $\nabla \phi$ was smooth throughout $U$.
-		\end{itemize}
-	\item[-] Explicit reconstruction of the surface (the most computationally expensive method)
-		\begin{itemize}
-			\item[$\bullet$] Pros
-			\item[$\bullet$] Cons
-		\end{itemize}
-\end{itemize}
-\end{comment}
-\subsection{Quadrature on implicitly defined domains via dimension reduction}
-The idea is to convert $\Gamma$ into the graph of an implicitly defined height function.
-To do so we define an $d$-dimensional hyperrectangle $U$
+For numerical purposes, the Brillouin zone is sampled on a uniform grid. This is most
+easily understood through the \emph{supercell} construction. For \(L \in \mathbb{N}^*\),
+the supercell is the \(L^d\)-fold replication of the unit cell along each lattice
+direction:
 \begin{equation}
-	U=(x_1^L,x_1^U)\times\dots\times(x_d^L,x_d^U)
+    \Gamma_L = L \Gamma,
+    \mathcal{R}_L = \mathcal{R} \cap \Gamma_L.
 \end{equation}
-and we denote by $(e_i)_{1\leq i\leq d}$ the canonical basis of $\mathbb{R}^d$.\\
-For a sufficiently small $U$ and a smooth enough $\phi$ (at least $\mathcal{C}^1$), we have $|\partial_{x_i}\phi|$ which is bounded away from zero. Therefore we can apply the implicit function theorem to describe locally $\Gamma\cap U$ with a height function such that  $x_i=h(x_1,\dots,x_{i-1},x_{i+1},\dots,x_d)$ on $\left[ x_i^L,x_i^U \right]$.
+The truncated Bloch transform of a function \(f \in L^2(\Gamma_L)\) reads
 \begin{equation}
-	\phi(x_1,\dots,x_{i-1},h(x_1,\dots,x_{i-1},x_{i+1},\dots,x_d),x_{i+1},\dots,x_d)=0\label{eq:height}
+    f(\mathbf{k}) = \sum_{\mathbf{R} \in \mathcal{R}_L}
+    \mathrm{e}^{i\mathbf{k}\cdot\mathbf{R}} f(\mathbf{R}),
 \end{equation}
-This is illustrated in~\autoref{fig:delimitation}.
+and is evaluated on the dual of \(\Gamma_L\), namely the \emph{Monkhorst-Pack
+    grid}~\cite{monkhorst1976special} (a uniform grid of \(L^d\) points in
+\(\mathcal{B}\)):
+\begin{equation}
+    \mathcal{B}_L = \left\{ \sum_{i=1}^d \frac{n_i}{L}\mathbf{b}_i :
+    n_i \in \left\{-\lfloor L/2\rfloor, \dots, \lfloor L/2\rfloor - 1\right\}
+    \right\},
+\end{equation}
+Brillouin-zone integrals are then approximated by the average
+\begin{equation}
+    \frac{1}{|\mathcal{B}|} \int_\mathcal{B} f(\mathbf{k})\mathrm{d}\mathbf{k}
+    \approx \frac{1}{L^d} \sum_{\mathbf{k} \in \mathcal{B}_L} f(\mathbf{k}).
+    \label{eq:ptr}
+\end{equation}
+This is the periodic trapezoidal rule on \(\mathcal{B}\) viewed as a torus. For analytic
+\(\mathcal{R}^*\)-periodic integrands, it converges exponentially fast in
+\(L\)~\cite{trefethen2014exponentially}.
+
+\subsection{The density of states}\label{sec:dos}
+
+The \emph{density of states} (DOS) of \(H\) at energy \(E \in \mathbb{R}\) is formally
+defined as
+\begin{equation}
+    D(E) = \frac{1}{|\mathcal{B}|} \sum_{n=1}^M
+    \int_\mathcal{B} \delta(E - \varepsilon_n(\mathbf{k}))
+    \mathrm{d}\mathbf{k}.
+    \label{eq:dos}
+\end{equation}
+It is a non-negative measure on \(\mathbb{R}\), and \(D(E)\mathrm{d}E\) counts the number
+of energy bands taking values in the infinitesimal interval \([E, E + \mathrm{d}E]\).
+
+The expression~\eqref{eq:dos} is delicate to handle numerically because the integrand is a
+Dirac measure. When the gradient \(\nabla \varepsilon_n\) does not vanish on
+\(\{\varepsilon_n = E\}\), the co-area formula~\cite{cances2020numerical} reformulates
+\(D(E)\) as a sum of surface integrals:
+\begin{equation}
+    D(E) = \frac{1}{|\mathcal{B}|} \sum_{n=1}^M
+    \int_{S_n(E)} \frac{1}{|\nabla \varepsilon_n(\mathbf{k})|}
+    \mathrm{d}\mathcal{H}^{d-1}(\mathbf{k}),
+    \label{eq:dosgrad}
+\end{equation}
+where \(\mathcal{H}^{d-1}\) is the \((d-1)\)-dimensional Hausdorff measure and
+\begin{equation}
+    S_n(E) = \{\mathbf{k} \in \mathcal{B} : \varepsilon_n(\mathbf{k}) = E\}
+\end{equation}
+is the \(n\)-th \emph{Fermi surface} at energy \(E\). The energies at which the
+non-vanishing-gradient condition fails (or at which two bands cross at energy \(E\)) are
+called \emph{van Hove singularities}; they form a set of measure zero and are responsible
+for the only points where \(D\) is singular~\cite{vanhove1953occurrence}. In 1D the DOS
+diverges as \(|E - \varepsilon_n(k_0)|^{-1/2}\) at a van Hove singularity \(k_0\), while
+in 2D it typically diverges as \(|\log|E - \varepsilon_n(\mathbf{k}_0)||\) at an isolated
+singularity \(\mathbf{k}_0\) and as \(|E - \varepsilon_n(\mathbf{k}_0)|^{-1/2}\) along a
+singular curve of points \(\mathbf{k}_0\). In 3D, the DOS is typically continuous at van
+Hove singularities, but exhibits cusp-like features.
+
+Equation~\eqref{eq:dosgrad} is the starting point of our numerical method: rather than
+regularising the Dirac in~\eqref{eq:dos}, we discretise the right-hand side directly,
+using a high-order quadrature on implicitly defined surfaces.
+
+\section{High-order quadrature on implicitly defined surfaces}\label{sec:saye}
+
+We now recall the high-order quadrature method of Saye~\cite{saye2015highorder} for the
+integration of smooth functions over surfaces and volumes defined implicitly inside a
+hyperrectangle. Specialising it to \(\phi = \varepsilon_n - E\) will yield a quadrature
+for the DOS via~\eqref{eq:dosgrad}.
+
+\subsection{Setting}
+
+Let \(U = (x_1^L, x_1^U) \times \cdots \times (x_d^L, x_d^U) \subset \mathbb{R}^d\) be a
+hyperrectangle and \(\phi \in \mathcal{C}^k(U)\) a level-set function (with \(k\) at least
+equal to the desired order of accuracy). We seek to evaluate
+\begin{equation}
+    \int_{\Gamma \cap U} g \mathrm{d}\mathcal{H}^{d-1},
+    \Gamma = \{\mathbf{x} \in \mathbb{R}^d : \phi(\mathbf{x}) = 0\},
+\end{equation}
+for a smooth integrand \(g\). We denote by \((\mathbf{e}_i)_{i=1}^d\) the canonical basis
+of \(\mathbb{R}^d\).
+
+\subsection{Dimension reduction via the implicit function theorem}
+
+The key idea is to express \(\Gamma \cap U\) locally as the graph of an implicit
+\emph{height function} over a \((d-1)\)-dimensional sub-hyperrectangle, thereby reducing
+the integration on a \((d-1)\)-dimensional surface in \(\mathbb{R}^d\) to an integration
+on a \((d-1)\)-dimensional volume in \(\mathbb{R}^{d-1}\).
+
+Suppose we can find a coordinate direction \(i \in \{1,\dots,d\}\) along which \(\phi\) is
+monotone on \(U\), in the sense that \(\partial_i \phi\) is bounded away from zero on
+\(U\). By the implicit function theorem, the equation \(\phi(\mathbf{x}) = 0\) then
+defines a unique smooth height function \(h : \tilde{U} \to (x_i^L, x_i^U)\), where
+\(\tilde U \subset \mathbb{R}^{d-1}\) is the projection of \(U\) onto the coordinates
+\(\tilde{\mathbf{x}} = (x_1, \dots, x_{i-1}, x_{i+1}, \dots, x_d)\), satisfying
+\begin{equation}
+    \phi\left(\tilde{\mathbf{x}} + h(\tilde{\mathbf{x}})\mathbf{e}_i\right) = 0,
+    \tilde{\mathbf{x}} \in \tilde U.
+    \label{eq:height}
+\end{equation}
+The subdomain \(\tilde V \subset \tilde U\) on which the graph \(\tilde{\mathbf{x}}
+\mapsto \tilde{\mathbf{x}} + h(\tilde{\mathbf{x}})\mathbf{e}_i\) indeed lies in \(U\) is
+determined by the signs of the restrictions of \(\phi\) to the lower and upper faces of
+\(U\) in the direction \(\mathbf{e}_i\):
+\begin{equation}
+    \psi^L(\tilde{\mathbf{x}}) = \phi(\tilde{\mathbf{x}} + x_i^L \mathbf{e}_i),
+    \psi^U(\tilde{\mathbf{x}}) = \phi(\tilde{\mathbf{x}} + x_i^U \mathbf{e}_i).
+\end{equation}
+For instance, when \(\partial_i \phi > 0\) on \(U\), one has \(\tilde V = \{\psi^L < 0\}
+\cap \{\psi^U > 0\}\). The other case is symmetric. All configurations are illustrated
+in~\autoref{fig:delimitation}.
+
 \begin{figure}[H]
-	\centering
-	\includegraphics[scale=0.45]{Images/Hyperrectangle.png}
-	\caption{Cases for the definition of $V_1$ and $V_2$ (image from~\cite{saye_high-order_2015})}
-	\label{fig:delimitation}
+    \centering
+    \includegraphics[scale=0.45]{Images/Hyperrectangle.png}
+    \caption{Cases for the definition of \(V_1\) and \(V_2\) (image
+        from~\cite{saye2015highorder}).} \label{fig:delimitation} % chktex 24
 \end{figure}
-We define two functions $\psi^L$ and $\psi^U$ of $\tilde{x} = (x_1,\dots,x_{i-1},x_{i+1},\dots,x_d)$ which are the restrictions of $\phi$ to the lower and upper faces.
-\begin{align}
-	\psi^L(\tilde{x}) & = \phi(\tilde{x} + x_i^L e_i) \\
-	\psi^U(\tilde{x}) & =\phi(\tilde{x} + x_i^U e_i)
-\end{align}
-This allows to define 2 $(d-1)$-dimensional volumes $V_1$ and $V_2$
-\begin{align}
-	V_1 & =\left\{
-	\begin{matrix}
-		\{\tilde{x}:\psi^L(\tilde{x})<0 \} & \mathrm{if} \ \partial_{x_i}\phi>0 \ \mathrm{in} \ U \\
-		\{\tilde{x}:\psi^L(\tilde{x})>0 \} & \mathrm{if} \ \partial_{x_i}\phi<0 \ \mathrm{in} \ U
-	\end{matrix}
-	\right.        \\
-	V_2 & =\left\{
-	\begin{matrix}
-		\{\tilde{x}:\psi^U(\tilde{x})>0 \} & \mathrm{if} \ \partial_{x_i}\phi>0 \ \mathrm{in} \ U \\
-		\{\tilde{x}:\psi^U(\tilde{x})<0 \} & \mathrm{if} \ \partial_{x_i}\phi<0 \ \mathrm{in} \ U
-	\end{matrix}
-	\right.
-\end{align}
-From~\eqref{eq:height} we have $\mathrm{d}S = \sqrt{1+|\nabla_{\tilde{x}} h(\tilde{x})|^2}\mathrm{d}\tilde{x}$.
-Moreover by derivating~\eqref{eq:height},
+A short computation using~\eqref{eq:height} gives the area element on \(\Gamma\):
 \begin{equation}
-	\forall j\neq i, \partial_{x_j} h(\tilde{x}) = -\frac{\partial_j\phi}{\partial_i\phi }\biggr\rvert_{x=\tilde{x}+h(\tilde{x})e_i}
+    \sqrt{1 + \|\nabla_{\tilde{\mathbf{x}}} h\|^2}
+    = \left.\frac{|\nabla \phi|}{|\partial_i \phi|}\right|_{\mathbf{x} = \tilde{\mathbf{x}} + h(\tilde{\mathbf{x}})\mathbf{e}_i},
 \end{equation}
-Thus
+so that
 \begin{equation}
-	\sqrt{1+|\nabla_{\tilde{x}} h(\tilde{x})|^2} = \frac{|\nabla \phi|}{\left|\partial_i\phi\right|}\biggr\rvert_{x=\tilde{x}+h(\tilde{x})e_i}
+    \int_{\Gamma \cap U} g \mathrm{d}\mathcal{H}^{d-1}
+    = \int_{\tilde V}
+    g\left(\tilde{\mathbf{x}} + h(\tilde{\mathbf{x}})\mathbf{e}_i\right)
+    \left.\frac{|\nabla \phi|}{|\partial_i \phi|}\right|_{\mathbf{x} = \tilde{\mathbf{x}} + h(\tilde{\mathbf{x}})\mathbf{e}_i}
+    \mathrm{d}\tilde{\mathbf{x}}.
+    \label{eq:saye-reduction}
 \end{equation}
-Using this equality yields
+The \((d-1)\)-dimensional integral on the right-hand side can itself be reduced to a
+\((d-2)\)-dimensional one by applying the same procedure recursively, until a
+one-dimensional quadrature is reached. The final scheme is a tensor-product Gauss-Legendre
+quadrature in which the height function \(h\) is evaluated by a one-dimensional
+root-finding procedure for \(\phi\).
+
+\subsection{Validity and the role of guaranteed bounds}\label{sec:saye-bounds}
+
+For the dimension-reduction step~\eqref{eq:saye-reduction} to be valid, two ingredients
+must be checked on \(U\):
+\begin{enumerate}
+    \item there exists a coordinate direction \(i\) along which \(\partial_i \phi\) has
+          constant, known sign on \(U\);
+    \item the signs of \(\psi^L\) and \(\psi^U\) on \(\tilde U\) are correctly identified,
+          so that \(\tilde V\) matches the true projection of \(\Gamma \cap U\).
+\end{enumerate}
+Both checks reduce to verifying inequalities of the form ``\(\phi\) (or \(\partial_i
+\phi\)) does not change sign on a hyperrectangle''. Saye's algorithm performs them by
+computing \emph{guaranteed bounds} on \(\phi\) and \(\partial_i \phi\) over \(U\). If a
+sign cannot be ascertained on \(U\), the box is bisected and the procedure recurses on the
+sub-boxes. The overall convergence therefore hinges entirely on the quality of the
+available bounds on \(\phi\) and its first partial derivatives.
+
+\subsection{Application to the density of states}
+
+For the DOS, we apply this procedure to each band \(n\) and to the level-set function
 \begin{equation}
-	\int_{\Gamma\cap U}g\mathrm{d}S=\int_{V_1\cap V_2}g \frac{|\nabla \phi|}{\left|\partial_i\phi\right|}\biggr\rvert_{x=\tilde{x}+h(\tilde{x})e_i}\mathrm{d}\tilde{x}
+    \phi_{n, E}(\mathbf{k}) = \varepsilon_n(\mathbf{k}) - E.
+\end{equation}
+Combined with~\eqref{eq:dosgrad}, this yields a quadrature for \(D(E)\) as a sum, over a
+hierarchical subdivision of \(\mathcal{B}\), of integrals of \(g = 1 / |\nabla
+\varepsilon_n|\) over the local pieces of \(S_n(E)\).
+
+The boxes produced by the subdivision are centered hyperrectangles
+\begin{equation}
+    D = \mathbf{k}_0 + \bm{\delta\mathbf{k}} =
+    \{\mathbf{k} \in \mathcal{B} : |k_i - k_{0,i}| \leq \delta k_i,\
+    i = 1, \dots, d\},
+\end{equation}
+and the bounds required by Saye's algorithm are bounds on \(\varepsilon_n - E\),
+\(\partial_i \varepsilon_n\) and (for the integrand \(1/|\nabla \varepsilon_n|\)) on the
+second derivatives \(\partial_i \partial_j \varepsilon_n\), uniformly on each such box
+\(D\).
+
+\section{Theoretical preliminaries}\label{sec:preliminaries}
+
+We collect in this section the analytic tools needed to construct,
+in~\autoref{sec:bounds}, computable bounds on the Bloch eigenvalues and their derivatives.
+
+Throughout, \(H : \mathcal{B} \to \mathbb{C}^{M\times M}\) denotes an analytic Bloch
+Hamiltonian at som generic point \(\mathbf{k}\) of \(\mathcal{B}\).  \(\varepsilon_n\), \(\psi_n\)
+denote its eigenvalues and normalised eigenvectors at the same point \(\mathbf{k}\).
+
+\subsection{Matrix norms}\label{sec:matrix-norms}
+
+We use two matrix norms on \(\mathbb{C}^{M\times M}\). The \emph{operator (spectral) norm}
+is the induced norm associated with the Euclidean norm on \(\mathbb{C}^M\):
+\begin{equation}
+    \|A\|_\mathrm{op} = \sigma_\mathrm{max}(A)
+    = \sqrt{\lambda_\mathrm{max}(A^*A)}.
+\end{equation}
+The \emph{Frobenius norm} is
+\begin{equation}
+    \|A\|_F = \sqrt{\sum_{i,j=1}^M |A_{ij}|^2}
+    = \sqrt{\sum_{i=1}^M \sigma_i(A)^2}.
+\end{equation}
+For Hermitian \(H\), the spectral norm coincides with the spectral radius:
+\begin{equation}
+    \|H\|_\mathrm{op} = \max_{\|x\|_2 = 1} \langle x | H | x \rangle
+    = \max_{1 \leq i \leq M} |\lambda_i(H)|.
+\end{equation}
+The two norms are related by the elementary inequality
+\begin{equation}
+    \|A\|_\mathrm{op} \leq \|A\|_F \leq \sqrt{M}\|A\|_\mathrm{op}.
+    \label{eq:op-vs-frob}
 \end{equation}
 
-Therefore this algorithm convergence depends on the correct localization of the isosurface $\Gamma$, and this localization itself intrinsically depends on the quality of the bounds on $\phi$ and its partial derivatives.
+\begin{remark}
+    For Hermitian matrices, the induced \(1\)-norm and \(\infty\)-norm coincide, but they
+    are not unitarily invariant and are therefore ill-suited for spectral perturbation
+    results; we do not use them in this paper. The spectral norm is natural for eigenvalue
+    perturbation estimates, yet it is numerically difficult to bound over a set of
+    parameters without solving a global optimization problem. The Frobenius norm, in
+    contrast, is easily computable from the matrix entries and can be used to bound
+    parameter-dependent spectral norms via~\eqref{eq:op-vs-frob}, albeit at the cost of a
+    factor \(\sqrt{M}\).
+\end{remark}
 
-\subsection{Application to eh computation of the Density of States}
-Now we want to apply this algorithm to the Density of States (DOS).
-We remind that
-\begin{equation}\label{eq:dosgrad}
-	D(E)=\frac{1}{|\mathcal{B}|}\sum_{m=1}^M\int_{S_m(E)} \frac{1}{|\nabla\varepsilon_{m}(\mathbf{k})|}\mathrm{d}\mathcal{H}^{d-1}(\mathbf{k}),
-\end{equation}
-which can be computed using the above-presented algorithm applied at each eigenvalue minus the desired energy level. We write
 
-\begin{equation}
-	\phi_{m,E} = \varepsilon_m-E
-\end{equation}
+\subsection{Weyl's inequality}\label{sec:weyl}
 
-In our case we will focus on the case of boxes centered around points $\mathbf{k}_0$, we will denote the box $\bm{\delta k}$ and the box centered around $\mathbf{k}_0$ as $D=\bm{\delta k}+\mathbf{k}_0$
+The starting point of all our eigenvalue bounds is Weyl's inequality, which controls the
+perturbation of individual eigenvalues by the spectral norm of the perturbation. We state
+it directly in the form best suited to the \(\mathbf{k}\)-dependence of the Bloch
+Hamiltonian.
 
-\section{Time-independent perturbation theory}
-We want to find approximations of the eigenvalues $\varepsilon_m$ and eigenstates $\psi_m$ of a Hamiltonian $H$. To do so we express $H$ as a small perturbation of a reference Hamiltonian $H_0$ by a small parameter $\lambda$. Then using a serie expansion in $\lambda$ we can find approximations of $H$ eigenvalues/eigenstates depending on $H_0$ eigenvalues $\varepsilon_{m,0}$ and eigenstates $\psi_{m,0}$.\\
-Let $H$, $H_0$ and $\delta H$ be three Hamiltonian of $\mathbb{C}^{M\times M}$ such that
-
-\begin{equation}
-	H(\lambda) = H_0+\lambda \delta H
-\end{equation}
-where $\lambda $ is a small positive parameter.\\
-We define for $m\in \llbracket 1, M \rrbracket$
-\begin{equation}
-	H\psi_m=\varepsilon_m\psi_m
-\end{equation}
-and
-
-\begin{equation}
-	H_0\psi_{m,0}=\varepsilon_{m,0}\psi_{m,0}
-\end{equation}
-Now considering a non-degenerate eigenvalues $\varepsilon_m(\lambda)$. We expand it in series as
-
-\begin{equation}
-	\varepsilon_m(\lambda) = \sum_{i=0}^{+\infty}\lambda^i\varepsilon_m^{(i)}
-\end{equation}
-Using the normalization of Hamiltonian eigenstates ($\lVert\psi\rVert_2=1$) and identifying each term in the development we have at second-order that
-
-\begin{equation}
-	\varepsilon_m(\lambda) = \varepsilon_{m,0} + \lambda \braket{\psi_{m,0}| W| \psi_{m,0}} + \lambda^2 \sum_{n\neq m} \frac{\braket{\psi_{n,0}| W| \psi_{m,0}}^2}{\varepsilon_{m,0}-\varepsilon_{n,0}} +\mathcal{O}(\lambda^3)
-\end{equation}
-Now considering a sufficiently smooth (at least continously differentiable) Hamiltonian $H_{\mathbf{k}}$ at point $\mathbf{k}$ of the Brillouin zone. We want its Taylor expansion around point $\mathbf{k}_0$, we write  $\delta_\mathbf{k} = (\delta_{k_i})_{i \in \{1,\dots,d\}} = (k_i-k_{0,i})_{i \in \{1,\dots,d\}}$. Here the perturbation theory yields
-
-\begin{equation}
-	\varepsilon_{m}(\mathbf{k}) = \varepsilon_{m}(\mathbf{k}_0) + \mathlarger{\sum_{i \in \{1,\dots,d \}}}\frac{\partial\varepsilon_{m}(\mathbf{k}_0)}{\partial k_i}\delta_{k_i}+\frac{1}{2}\mathlarger{\sum_{i,j \in \{1,\dots,d \}}} \frac{\partial^2\varepsilon_{m}(\mathbf{k}_0)}{\partial k_i\partial k_j}\delta_{k_i} \delta_{k_j}+\mathcal{O}(\lVert k\rVert^3) \label{eq:perteigen}
-\end{equation}
-where
-\begin{equation}
-	\frac{\partial\varepsilon_{m}}{\partial k_i} = \braket{\psi_{m}| \partial_{i} H| \psi_{m}}
-\end{equation}
-and
-\begin{equation}
-	\frac{\partial^2\varepsilon_{m}}{\partial k_i\partial k_j}=\braket{\psi_{m}| \partial_{i}\partial_{j}H| \psi_{m}}+
-	2\sum_{n\neq m}\frac{\mathrm{Re}\left(\braket{\psi_{m}| \partial_{i}H| \psi_{n}}\braket{\psi_{n}| \partial_{j}H| \psi_{m}}\right)}{\varepsilon_{m}-\varepsilon_{n}}
-\end{equation}
-\subsection{Guaranteed theoretical bound}
-Now from~\autoref{eq:perteigen} we can derive guaranteed bounds on the eigenvalues.\\
-\textcolor{red}{Introduire les notations avant pour $H$, $\varepsilon_m$,$\psi_m$, $\delta \mathbf{k}$  et $D$}
-\begin{lemma}{Weyl's Inequality for Bloch eigenvalues}\label{lemma:weyl}\\
-	Let $\mathbf{k}_0 \in \mathcal{B}$ and $H: \mathcal{B} \rightarrow \mathbb{C}^{M \times M}$ an analytic Bloch Hamiltonian. Let $D=\bm{k_0}+\bm{\delta k}=\left\{\mathbf{k} \in \mathcal{B}, |k_i-k_{0,i}|\leq \delta k_i, \, i \in\{1,\cdots,d\} \right\}$ the hyperrectangle centered around $\mathbf{k}_0$.\\
-	Then for all $m=1,\dots,M$, $ \mathbf{k} \in D$,
-	\begin{equation}
-		|\varepsilon_{m}(\mathbf{k}) - \varepsilon_{m}(\mathbf{k}_0)| \leq \sup_{\mathbf{q} \in D}\lVert H(\mathbf{q})-H(\mathbf{k}_0)\rVert_{\mathrm{op}}
-	\end{equation}
-	where $\lVert\cdot \rVert_{\mathrm{op}}$ denotes the operator norm defined as
-
-	\begin{equation}
-		\lVert H \rVert_{\mathrm{op}} = \sup_{\lVert \psi \rVert_2\, =1} \lVert H \psi \rVert_2 .
-	\end{equation}
-
+\begin{lemma}[Weyl's inequality for Bloch eigenvalues]
+    \label{lemma:weyl} % chktex 24
+    For all \(n \in \{1,\dots,M\}\) and all \(\mathbf{k}, \mathbf{k}_0 \in \mathcal{B}\),
+    \begin{equation}
+        |\varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)|
+        \leq \|H(\mathbf{k}) - H(\mathbf{k}_0)\|_\mathrm{op}.
+    \end{equation}
 \end{lemma}
 
-\begin{corollary}[First-order bound]
+This inequality holds without any non-degeneracy assumption and relies only on the
+continuity of \(H\). Its strength is to reduce the analysis of the (generally non-smooth)
+eigenvalue maps \(\varepsilon_n\) to the analysis of the (entire and analytic)
+matrix-valued \(H\).
 
-	In addition, if $\varepsilon_m$ is non-degenerate, then for all $ \mathbf{k} \in D$,
+\subsection{Time-independent perturbation theory: non-degenerate
+    case}\label{sec:perturbation-nondegen}
 
-	\begin{equation}
-		|\varepsilon_{m}(\mathbf{k}) - \varepsilon_{m}(\mathbf{k}_0)|
-		\leq
-		\sup_{\mathbf{k} \in D}\sum_{j=1}^d \lVert\partial_j H(\mathbf{k})\rVert_{\mathrm{op}} |\delta k_j|
-		\leq
-		\sup_{\mathbf{k} \in D}\sqrt {\sum_{j=1}^d\left\lVert\partial_j H(\mathbf{k})\right\rVert_{\mathrm{op}}^2}\lVert \delta \mathbf{k} \rVert_2
-	\end{equation}
-\end{corollary}
+Weyl's inequality controls eigenvalue \emph{values} but says nothing about their
+\emph{derivatives}, which we need to control the integrand \(1/|\nabla \varepsilon_n|\)
+of~\eqref{eq:dosgrad} and to certify the applicability of the implicit function theorem in
+Saye's algorithm. To access derivatives, we use standard time-independent perturbation
+theory, which expands the eigenvalues and eigenvectors of a perturbed self-adjoint
+operator in powers of the perturbation parameter.
+
+\subsubsection{General setup}
+
+Consider three Hermitian matrices \(H_0, \delta H, H \in \mathbb{C}^{M\times M}\) related
+by
+\begin{equation}
+    H(\lambda) = H_0 + \lambda\delta H,
+\end{equation}
+where \(\lambda \in \mathbb{R}\) is a small parameter. Let \(\varepsilon_{n,0},
+\psi_{n,0}\) denote the eigenpairs of \(H_0\), assumed non-degenerate, and let
+\(\varepsilon_n(\lambda), \psi_n(\lambda)\) denote those of \(H(\lambda)\), depending
+analytically on \(\lambda\) for \(\lambda\) sufficiently small. Expanding
+\begin{equation}
+    \varepsilon_n(\lambda) = \sum_{i=0}^{+\infty} \lambda^i\varepsilon_n^{(i)}
+\end{equation}
+and identifying coefficients term by term, we obtain up to second
+order~\cite{kato1995perturbation},
+\begin{equation}
+    \varepsilon_n(\lambda)
+    = \varepsilon_{n,0}
+    + \lambda\langle \psi_{n,0} | \delta H | \psi_{n,0} \rangle
+    + \lambda^2 \sum_{m \neq n}
+    \frac{|\langle \psi_{m,0} | \delta H | \psi_{n,0} \rangle|^2}
+    {\varepsilon_{n,0} - \varepsilon_{m,0}}
+    + \mathcal{O}(\lambda^3).
+    \label{eq:rsbg}
+\end{equation}
+The first-order coefficient is the projection of \(\delta H\) onto the eigenstate
+\(\psi_{n,0}\); the second-order coefficient involves all other eigenstates and is
+inversely proportional to the energy gaps separating \(\varepsilon_{n,0}\) from the rest
+of the spectrum.
+
+\subsubsection{Application to the Bloch Hamiltonian}
+
+We now specialise this expansion to perturbations in \(\mathbf{k}\). Fix \(\mathbf{k}_0
+\in \mathcal{B}\) and consider the Taylor expansion (as \(H\) is analytic)
+\begin{equation}
+    H(\mathbf{k}) = H(\mathbf{k}_0)
+    + \sum_{i=1}^d \delta k_i \partial_i H(\mathbf{k}_0)
+    + \frac{1}{2}\sum_{i,j=1}^d \delta k_i \delta k_j
+    \partial_i\partial_j H(\mathbf{k}_0)
+    + \mathcal{O}(\|\bm{\delta\mathbf{k}}\|^3),
+\end{equation}
+with \(\delta k_i = k_i - k_{0,i}\). Plugging this into~\eqref{eq:rsbg}, one recovers the
+standard expressions for the Taylor expansion of \(\varepsilon_n\).
+\begin{equation}
+    \varepsilon_n(\mathbf{k}) = \varepsilon_n(\mathbf{k}_0)
+    + \sum_{i=1}^d \delta k_i \partial_i \varepsilon_n(\mathbf{k}_0)
+    + \frac{1}{2}\sum_{i,j=1}^d \delta k_i \delta k_j
+    \partial_i\partial_j \varepsilon_n(\mathbf{k}_0)
+    + \mathcal{O}(\|\bm{\delta\mathbf{k}}\|^3),
+\end{equation}
+Writing
+\(\psi_n = \psi_n(\mathbf{k}_0)\) for brevity, the first derivative is given by the
+Hellmann-Feynman formula
+\begin{equation}
+    \partial_i \varepsilon_n(\mathbf{k}_0)
+    = \langle \psi_n | \partial_i H(\mathbf{k}_0) | \psi_n \rangle,
+    \label{eq:hellmann-feynman}
+\end{equation}
+and the second derivative is
+\begin{equation}
+    \partial_i \partial_j \varepsilon_n(\mathbf{k}_0)
+    = \langle \psi_n | \partial_i \partial_j H(\mathbf{k}_0) | \psi_n \rangle
+    + 2 \sum_{m \neq n}
+    \frac{\mathrm{Re}\left(\langle \psi_n | \partial_i H(\mathbf{k}_0) | \psi_m \rangle
+        \langle \psi_m | \partial_j H(\mathbf{k}_0) | \psi_n \rangle\right)}
+    {\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)}.
+    \label{eq:second-derivative}
+\end{equation}
+The denominator \(\varepsilon_n - \varepsilon_m\) in~\eqref{eq:second-derivative} encodes
+the influence of the rest of the spectrum on the curvature of the band \(\varepsilon_n\).
+It also indicates the regime in which the expansion fails: when another band approaches
+\(\varepsilon_n\), the second derivative diverges and the eigenvalue ceases to be smooth.
+
+
+\section{Bounds for eigenvalues and derivatives}\label{sec:bounds}
+
+We now combine the analytic tools of~\autoref{sec:preliminaries} into computable
+bounds on the Bloch eigenvalues and their derivatives. All bounds are established
+on a fixed centered box
+\begin{equation}
+    D = \mathbf{k}_0 + \bm{\delta\mathbf{k}}
+    = \left\{ \mathbf{k} \in \mathcal{B} : |k_i - k_{0,i}| \leq \delta k_i,\
+    i = 1, \dots, d \right\},
+    \label{eq:box}
+\end{equation}
+issued from the adaptive subdivision performed by Saye's algorithm. Throughout,
+the half-widths \(\delta k_i \geq 0\) are non-negative scalars. We adopt the
+convention that the path bounds are first stated in operator norm — the natural
+norm for spectral perturbation arguments — and only later substituted by
+Frobenius norms for numerical evaluation (see~\autoref{sec:numerical-bounds}).
+
+\subsection{The path bound}\label{sec:bounds-pathwise}
+
+The starting point of all our eigenvalue bounds is the following pathwise estimate,
+which controls the variation of the Hamiltonian on \(D\) by the first derivatives
+of \(H\). The result is stated as a chain of two inequalities of decreasing
+sharpness, corresponding to two ways of treating the linear combination
+\(\sum_j \partial_j H(\mathbf{q})\,(k_j - k_{0,j})\): either keeping the matrix
+absolute value as a single object (sharper, but requires a spectral decomposition
+to evaluate) or splitting it into individual operator norms (looser, but
+amenable to a Frobenius substitution).
+
+\begin{lemma}[First-order path bound]\label{lemma:bounds}
+    For all \(\mathbf{k} \in D\),
+    \begin{align}
+        \|H(\mathbf{k}) - H(\mathbf{k}_0)\|_\mathrm{op}
+         & \leq \sup_{\mathbf{q}\in D}
+        \left\| \sum_{j=1}^d |\partial_j H(\mathbf{q})|\, \delta k_j
+        \right\|_\mathrm{op}
+        \label{eq:pathwise-tight}       \\
+         & \leq \sup_{\mathbf{q} \in D}
+        \sum_{j=1}^d \|\partial_j H(\mathbf{q})\|_\mathrm{op}\, \delta k_j.
+        \label{eq:pathwise-loose}
+    \end{align}
+\end{lemma}
+
 \begin{proof}
-	Let $\mathbf{k} \in D$, we suppose that each eigenvalue is non-degenerate in $D$.\\
-	Let $\gamma: t\mapsto (1-t)\mathbf{k}_0 +t\mathbf{k}$ a straight-line path between $\mathbf{k}$ and $\mathbf{k}_0$.
-	We define $f:t \mapsto H(\gamma(t))$ which is analytic by composition.
-	The chain rule yields
-	\begin{equation}
-		f'(t) = \sum_{j=1}^d \partial_j H(\gamma(t))(k_j - k_{0,j}).
-	\end{equation}
-	Hence
-	\begin{equation}
-		H(\mathbf{k})-H(\mathbf{k}_0) =f(1)-f(0)= \int_0^1 f'(t)\mathrm{d}t = \sum_{j=1}^d\int_0^1 \partial_j H(\gamma(t))(k_j - k_{0,j}).
-	\end{equation}
-	Taking the operator norm and applying the triangular inequality gives
-	\begin{equation}
-		\lVert H(\mathbf{k})-H(\mathbf{k}_0)\rVert_{\mathrm{op}} \leq \sum_{j=1}^d \int_0^1 \lVert\partial_jH(\gamma(t))\rVert_{\mathrm{op}}|k_j - k_{0,j}|\mathrm{d}t \leq  \sum_{j=1}^d  \lVert\partial_jH(\gamma(t))\rVert_{\mathrm{op}}|\delta k_j| .
-	\end{equation}
-	Now by combining that $\forall t \in [0,1], \gamma(t) \in D$ and the~\autoref{lemma:weyl}
-	\begin{equation}
-		|\varepsilon_{m}(\mathbf{k}) - \varepsilon_{m}(\mathbf{k}_0)|
-		\leq
-		\lVert H(\mathbf{k})-H(\mathbf{k}_0)\rVert_{\mathrm{op}}
-		\leq
-		\sup_{\mathbf{q} \in D}\sum_{j=1}^d \lVert\partial_j H(\mathbf{q})\rVert_{\mathrm{op}} |\delta k_j|.
-	\end{equation}
-	Finally, Cauchy-Schwarz inequality gives the second bound
-	\begin{equation}
-		|\varepsilon_{m}(\mathbf{k}) - \varepsilon_{m}(\mathbf{k}_0)|
-		\leq
-		\sup_{\mathbf{k} \in D}\sqrt {\sum_{j=1}^d\left\lVert\partial_j H(\mathbf{k})\right\rVert_{\mathrm{op}}^2}\lVert \delta \mathbf{k} \rVert_2
-	\end{equation}
-	This concludes the proof.
+    The proof proceeds in two steps, one per inequality.
+
+    \emph{Step 1 (path bound,~\eqref{eq:pathwise-tight}).}
+    Since \(D\) is convex (it's a rectangle), the segment
+    \(\gamma : t \in [0,1] \mapsto (1-t)\mathbf{k}_0 + t\mathbf{k}\) lies in \(D\).
+    The map \(t \mapsto H(\gamma(t))\) is analytic, and the chain rule gives
+    \(\frac{\mathrm{d}}{\mathrm{d}t} H(\gamma(t))
+    = \sum_{j=1}^d \partial_j H(\gamma(t))\,(k_j - k_{0,j})\). Integrating from
+    \(0\) to \(1\),
+    \begin{equation}
+        H(\mathbf{k}) - H(\mathbf{k}_0)
+        = \int_0^1 \sum_{j=1}^d \partial_j H(\gamma(t))\,(k_j - k_{0,j})
+        \,\mathrm{d}t.
+        \label{eq:H-integral-form}
+    \end{equation}
+    Fix \(t \in [0,1]\) and set \(B(t) := \sum_j \partial_j H(\gamma(t))\,
+    (k_j - k_{0,j})\). The matrix \(B(t)\) is Hermitian as a real linear
+    combination of Hermitian matrices. We now establish the pointwise inequality
+    \begin{equation}
+        \|B(t)\|_\mathrm{op}
+        \leq \left\| \sum_{j=1}^d |\partial_j H(\gamma(t))|\, |k_j - k_{0,j}|
+        \right\|_\mathrm{op},
+        \label{eq:pointwise-jkn}
+    \end{equation}
+    which is the heart of the argument. For any Hermitian matrix \(A\) with
+    spectral decomposition \(A = \sum_i \mu_i P_i\) and any unit vector \(v\),
+    \begin{equation}
+        |\langle v, A v\rangle|
+        = \left| \sum_i \mu_i\,\|P_i v\|^2 \right|
+        \leq \sum_i |\mu_i|\,\|P_i v\|^2
+        = \langle v, |A|\, v\rangle,
+        \label{eq:spectral-ineq}
+    \end{equation}
+    Combining~\eqref{eq:spectral-ineq} with the variational principle
+    \(\|B(t)\|_\mathrm{op} = \max_{\|v\|=1} |\langle v, B(t) v\rangle|\)
+    (valid for Hermitian \(B(t)\)),
+    \begin{align}
+        \|B(t)\|_\mathrm{op}
+         & = \max_{\|v\|=1}
+        \left| \sum_j (k_j - k_{0,j})\, \langle v, \partial_j H(\gamma(t))\, v\rangle
+        \right|                                                                  \\
+         & \leq \max_{\|v\|=1}
+        \sum_j |k_j - k_{0,j}|\, |\langle v, \partial_j H(\gamma(t))\, v\rangle| \\
+         & \leq \max_{\|v\|=1}
+        \sum_j |k_j - k_{0,j}|\, \langle v, |\partial_j H(\gamma(t))|\, v\rangle \\
+         & = \left\| \sum_j |\partial_j H(\gamma(t))|\, |k_j - k_{0,j}|
+        \right\|_\mathrm{op},
+    \end{align}
+    where the last equality uses that \(\sum_j |\partial_j H(\gamma(t))|\, |k_j -
+    k_{0,j}|\) is positive semi-definite (a non-negative combination of PSD matrices), so
+    its operator norm coincides with its largest eigenvalue. This
+    proves~\eqref{eq:pointwise-jkn}.
+
+    Taking the operator norm of~\eqref{eq:H-integral-form} via the Bochner
+    integral triangle inequality and applying~\eqref{eq:pointwise-jkn},
+    \begin{equation}
+        \|H(\mathbf{k}) - H(\mathbf{k}_0)\|_\mathrm{op}
+        \leq \int_0^1 \|B(t)\|_\mathrm{op}\,\mathrm{d}t
+        \leq \int_0^1 \left\| \sum_j |\partial_j H(\gamma(t))|\, |k_j - k_{0,j}|
+        \right\|_\mathrm{op}\,\mathrm{d}t.
+        \label{eq:integrated-jkn}
+    \end{equation}
+    To replace the path-dependent integrand by a uniform bound on \(D\), we use
+    \(|k_j - k_{0,j}| \leq \delta k_j\) and the monotonicity of the operator
+    norm for positive semi-deff positive seminite matrices: if \(0 \leq P
+    \leq Q\) (in the PSD sense) then \(\|P\|_\mathrm{op}\leq\|Q\|_\mathrm{op}\).
+    Applied to
+    \begin{equation}
+        \sum_j |\partial_j H(\gamma(t))|\, |k_j - k_{0,j}|
+        \leq \sum_j |\partial_j H(\gamma(t))|\, \delta k_j,
+    \end{equation}
+    this gives
+    \begin{equation}
+        \left\| \sum_j |\partial_j H(\gamma(t))|\, |k_j - k_{0,j}|
+        \right\|_\mathrm{op}
+        \leq \left\| \sum_j |\partial_j H(\gamma(t))|\, \delta k_j
+        \right\|_\mathrm{op}
+        \leq \sup_{\mathbf{q} \in D}
+        \left\| \sum_j |\partial_j H(\mathbf{q})|\, \delta k_j
+        \right\|_\mathrm{op},
+    \end{equation}
+    where the last inequality uses \(\gamma(t) \in D\). The right-hand side is
+    constant in \(t\), so integrating over \([0,1]\)
+    yields~\eqref{eq:pathwise-tight}.
+
+    Since \(\||\partial_j H(\mathbf{q})|\|_\mathrm{op} = \|\partial_j
+    H(\mathbf{q})\|_\mathrm{op}\) (the operator norm is invariant under taking the matrix
+    absolute value, as it depends only on singular values), applying the triangular
+    inequality yields~\eqref{eq:pathwise-loose}.
 \end{proof}
 
-\begin{corollary}[Second‐order bound]
+\begin{remark}[Sharpness: \eqref{eq:pathwise-tight} versus \eqref{eq:pathwise-loose}]
+    The bound~\eqref{eq:pathwise-tight} can be strictly tighter than
+    ~\eqref{eq:pathwise-loose}, with the gap controlled by the spectral
+    overlap of the matrices \((|\partial_j H(\mathbf{q})|)_j\). Two extreme
+    cases illustrate the spread.
+    \begin{itemize}
+        \item If all \(|\partial_j H(\mathbf{q})|\) share an eigenvector
+              \(v\) achieving their largest eigenvalue, then equality holds:
+              \(\|\sum_j |\partial_j H(\mathbf{q})|\,\delta k_j\|_\mathrm{op}
+              = \sum_j \|\partial_j H(\mathbf{q})\|_\mathrm{op}\,\delta k_j\).
+        \item If the \(|\partial_j H(\mathbf{q})|\) are mutually orthogonal
+              projectors (e.g.\ \(|A_1| = |e_1\rangle\langle e_1|\),
+              \(|A_2| = |e_2\rangle\langle e_2|\)), then
+              \(\|\sum_j |\partial_j H|\,\delta k_j\|_\mathrm{op}
+              = \max_j \delta k_j\), whereas
+              \(\sum_j \|\partial_j H\|_\mathrm{op}\,\delta k_j
+              = \sum_j \delta k_j\), so the second bound is up to \(d\) times
+              looser.
+    \end{itemize}
+    A naive Cauchy-Schwarz bound \(|\langle v, \partial_j H\, v\rangle|
+    \leq \|\partial_j H\|_\mathrm{op}\) directly applied to
+    \(\|\sum_j (k_j - k_{0,j}) \partial_j H\|_\mathrm{op}\) gives the looser
+    bound~\eqref{eq:pathwise-loose} only; the spectral
+    inequality~\eqref{eq:spectral-ineq} is what allows~\eqref{eq:pathwise-tight}.
+\end{remark}
+\begin{remark}[Matrix absolute value and spectral decomposition]
+    The matrix absolute value \(|A|\) of a Hermitian matrix \(A\) is defined as \(|A| =
+    \sqrt{A^2}\). It can be computed from the spectral decomposition of \(A\): if \(A =
+    \sum_i \mu_i P_i\) then \(|A| = \sum_i |\mu_i| P_i\). The bound using \(|\partial_j
+    H|\) is therefore sharper than the one using \(\|\partial_j H\|_\mathrm{op}\) because
+    it retains the spectral information of \(\partial_j H\) instead of discarding it via
+    the operator norm. However, it is not computable on an arbitrary set \(D\) without
+    solving a global optimization problem, since the spectral decomposition of \(\sum_j
+    |\partial_j H(\mathbf{q})|\,\delta k_j\) depends on \(\mathbf{q}\). The bound using
+    \(\|\partial_j H\|_\mathrm{op}\) is therefore more tractable.
+\end{remark}
+\subsection{First-order eigenvalue bounds}\label{sec:bounds-eigenvalues-1}
 
-	Under the same non-degeneracy hypothesis on $\varepsilon_m$, we have for all $ \mathbf{k} \in D$,
-	\begin{equation}
-		|\varepsilon_{m}(\mathbf{k}) - \varepsilon_{m}(\mathbf{k}_0) -\sum_{i=1}^d \delta k_i \frac{\partial \varepsilon_m}{\partial k_i}(\mathbf{k}_0)| \leq  \frac{1}{2}\lVert \delta \mathbf{k} \rVert_2^2 \sup_{\mathbf{k} \in D}\left( \lVert \nabla^2 H(\mathbf{k})\rVert_{\mathrm{op}}+ 2\frac{\lVert \nabla H(\mathbf{k})\rVert^2_{\mathrm{op}}}{\Delta_m}\right)
-	\end{equation}
-	where $\displaystyle{\Delta_m = \min_{\mathbf{k}_1, \mathbf{k}_2 \in D, n\neq m} |\varepsilon_m(k_1) -\varepsilon_n(k_2) |}$ is the gap between the $m$-th eigenvalue and the closest eigenvalue of a different band.
+Combining Weyl's inequality (\autoref{lemma:weyl}) with the path
+bound~\eqref{eq:pathwise-tight}–\eqref{eq:pathwise-loose} yields the order-one
+bound on the eigenvalues, valid uniformly in \(n\) and without any non-degeneracy
+assumption.
 
-	\begin{proof}
-		The idea is to use the second term of the Taylor expansion of our eigenvalue.
-		Let $\mathbf{k} \in D$,
-
-	\end{proof}
+\begin{corollary}[First-order eigenvalue bound]\label{cor:1st-eigenvalue-bound}
+    For all \(n \in \{1,\dots,M\}\) and all \(\mathbf{k} \in D\),
+    \begin{align}
+        |\varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)|
+         & \leq \sup_{\mathbf{q}\in D}
+        \left\| \sum_{j=1}^d |\partial_j H(\mathbf{q})|\, \delta k_j
+        \right\|_\mathrm{op}
+        \label{eq:eig-bound-tight}      \\
+         & \leq \sup_{\mathbf{q} \in D}
+        \sum_{j=1}^d \|\partial_j H(\mathbf{q})\|_\mathrm{op}\, \delta k_j.
+        \label{eq:eig-bound-loose}
+    \end{align}
 \end{corollary}
 
-\subsection{Numerical bounds}
-The theoretical bounds are valid, but we often don’t know the exact supremum of our eigenvalues on a given box. To ensure our algorithm performs reliably, we need numerical estimates. One approach is to use interval arithmetic. Although the bounds from interval arithmetic aren’t sharp, they are rigorous—especially since our Hamiltonians are represented as truncated Fourier series of known matrices. Our strategy, then, is to combine and compare several different eigenvalue bounds to find the most effective estimate.
+\begin{proof}
+    Direct application of~\autoref{lemma:weyl} and~\autoref{lemma:bounds}.
+\end{proof}
 
-\subsubsection{Interval Arithmetic}
-We remind the  Taylor expansion for functions over an interval
-\begin{equation}
-	[f]([x]) = f(y)+\sum_{|\alpha|=1}^{k} \frac{D^\alpha f(y)}{\alpha!}([x]-y)^\alpha + \sum_{\alpha=|k+1|}\frac{[D^{|\alpha|}f]([x])}{(\alpha)!}([x]-y)^{\alpha}
-\end{equation}
-where $\alpha= (\alpha_1,\dots,\alpha_d)$ , $\displaystyle{\alpha! = \prod_{i=1}^d \alpha_i!}$, $\displaystyle{D^\alpha f=\frac{\partial^{\alpha}f}{\partial k_1^{\alpha_1}\dots \partial k_d^{\alpha_d}}}$ and $\displaystyle{([x]-y)^\alpha}= \prod_{i=1}^{d}([x]-y)^{\alpha_i}$.\\
-In our case up to first and second order we have
+\begin{remark}[Range of validity]
+    Both bounds are valid uniformly in \(n\) and require no assumption on the
+    multiplicity or isolation of \(\varepsilon_n(\mathbf{k}_0)\), since Weyl's
+    inequality and the path bound both hold for every hermitian Hamiltonian.
+    They are therefore the appropriate bounds for boxes that may contain band
+    crossings, where the order-two bound below fails.
+\end{remark}
 
-\begin{equation}
-	[\varepsilon_m]([\bm{\delta k}]+\bm{k}_0) = \varepsilon_m(\mathbf{k}_0)+ \sum_{i=1}^d[\partial_i\varepsilon_m]([\bm{\delta k}]+\mathbf{k}_0)[\delta k_i]
-\end{equation}
-\begin{equation}
-	[\varepsilon_m]([\bm{\delta k}]+\bm{k}_0) = \varepsilon_m(\mathbf{k}_0)+ \sum_{i=1}^d\partial_i \varepsilon_m(\mathbf{k}_0)\cdot[\delta k_i]+ \sum_{i,j = 1}^d\frac{[\partial_i\partial_j\varepsilon_m]([\bm{\delta k}]+\bm{k}_0)}{2!}\cdot[\delta k_i][\delta k_j]
-\end{equation}
-\subsubsection{Sampling bounds}
-The idea of sampling bounds is to get non-guaranteed bounds but which tends to the real bounds as the number of sampling points tends to infinity. The idea is to use the bounds obtained in~\autoref{lemma:weyl} and to obtain an estimation of the sup of the desired quantities to directly use our bounds.
+\subsection{Second-order eigenvalue bound}\label{sec:bounds-eigenvalues-2}
 
-\textcolor{red}{Cette partie là on fait pas du coup si j'ai bien compris}
-\section{Bounds for degenerate eigenvalues}
-For degenerate eigenvalues, the Hamiltonian regularity does not imply the regularity of its eigenvalues. Thus the classical perturbation theory is not fitted to bound the eigenvalues after the first-order.
+A sharper bound is obtained by pushing the Taylor expansion of \(\varepsilon_n\)
+to second order, at the price of requiring a spectral gap.
 
-Let $\mathbf{k}_0 \in \mathcal{B}$ such that $\varepsilon_{i}, \varepsilon_{j}$ are degenerate eigenvalues. Let $P$ be the projector on the eigenspace spanned by the corresponding eigenvectors $\psi_{i}, \psi_{j}$
+\begin{lemma}[Second-derivative bound]\label{lemma:second-deriv}
+    Assume that the band \(\varepsilon_n\) is non-degenerate on \(D\), i.e.\
+    \(\Delta_n(D) > 0\), with
+    \begin{equation}
+        \Delta_n(D) := \inf_{\mathbf{k} \in D}\,\min_{m \neq n}
+        |\varepsilon_n(\mathbf{k}) - \varepsilon_m(\mathbf{k})|.
+    \end{equation}
+    Then for all \(\mathbf{q} \in D\) and all \(i, j \in \{1, \dots, d\}\),
+    \begin{equation}
+        |\partial_i \partial_j \varepsilon_n(\mathbf{q})|
+        \leq \mu_{ij}(\mathbf{q})
+        := \|\partial_i \partial_j H(\mathbf{q})\|_\mathrm{op}
+        + \frac{2 \|\partial_i H(\mathbf{q})\|_\mathrm{op}\,
+            \|\partial_j H(\mathbf{q})\|_\mathrm{op}}
+        {\Delta_n(D)}.
+        \label{eq:mu-def}
+    \end{equation}
+\end{lemma}
+
+\begin{proof}
+    Under the non-degeneracy assumption, \(\varepsilon_n\) is real-analytic
+    on \(D\), and the second-derivative formula~\eqref{eq:second-derivative}
+    applies. The triangle inequality decomposes \(|\partial_i \partial_j
+    \varepsilon_n(\mathbf{q})|\) into two terms.
+
+    The first term is bounded as
+    \begin{equation}
+        |\langle \psi_n | \partial_i \partial_j H(\mathbf{q}) | \psi_n \rangle|
+        \leq \|\partial_i \partial_j H(\mathbf{q})\|_\mathrm{op},
+    \end{equation}
+    since \(\|\psi_n\|_2 = 1\).
+
+    For the second term, the gap denominator is bounded below by
+    \(\Delta_n(D)\), and the numerator is controlled via the
+    Cauchy–Schwarz inequality:
+    \begin{align}
+        \left| \sum_{m \neq n}
+        \langle \psi_n | A | \psi_m \rangle \langle \psi_m | B | \psi_n \rangle
+        \right|
+         & \leq \sum_{m \neq n}
+        |\langle \psi_n | A | \psi_m \rangle|\,|\langle \psi_m | B | \psi_n \rangle| \\
+         & \leq \left(\sum_{m \neq n}
+                |\langle \psi_n | A | \psi_m \rangle|^2\right)^{1/2}
+        \left(\sum_{m \neq n}
+        |\langle \psi_m | B | \psi_n \rangle|^2\right)^{1/2}                         \\
+         & \leq \|A \psi_n\|_2\,\|B^* \psi_n\|_2
+        \leq \|A\|_\mathrm{op}\,\|B\|_\mathrm{op},
+    \end{align}
+    where we used that \(\sum_{m \neq n} |\langle \psi_n | A | \psi_m \rangle|^2
+    \leq \sum_m |\langle \psi_n | A | \psi_m \rangle|^2 = \|A\psi_n\|_2^2\).
+    Setting \(A = \partial_i H(\mathbf{q})\) and
+    \(B = \partial_j H(\mathbf{q})\) yields the second term in~\eqref{eq:mu-def}, and the result follows.
+\end{proof}
+
+\begin{corollary}[Second-order eigenvalue bound]\label{cor:2nd-eigenvalue-bound}
+    Under the assumptions of~\autoref{lemma:second-deriv}, for all
+    \(\mathbf{k} \in D\),
+    \begin{equation}
+        \left| \varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)
+        - \sum_{i=1}^d \partial_i \varepsilon_n(\mathbf{k}_0)\,(k_i - k_{0,i})
+        \right|
+        \leq \frac{1}{2} \sup_{\mathbf{q} \in D}
+        \sum_{i,j=1}^d \mu_{ij}(\mathbf{q})\, \delta k_i\, \delta k_j.
+        \label{eq:eig-bound-order-2}
+    \end{equation}
+\end{corollary}
+\begin{proof}
+    The non-degeneracy assumption guarantees that \(\varepsilon_n\) is
+    \(\mathcal{C}^2\) on \(D\). By Taylor--Lagrange applied to
+    there exists \(\mathbf{q}\) on the segment
+    \([\mathbf{k}_0, \mathbf{k}] \subset D\) such that
+    \begin{equation}
+        \varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)
+        - \sum_i \partial_i \varepsilon_n(\mathbf{k}_0)\,(k_i - k_{0,i})
+        = \frac{1}{2} \sum_{i,j}
+        \partial_i \partial_j \varepsilon_n(\mathbf{q})\,(k_i - k_{0,i})(k_j - k_{0,j}).
+    \end{equation}
+    Bounding each \(|\partial_i \partial_j \varepsilon_n(\mathbf{q})|\) by
+    \(\mu_{ij}(\mathbf{q})\) via~\autoref{lemma:second-deriv} and using
+    \(|k_i - k_{0,i}| \leq \delta k_i\) together with \(\mathbf{q} \in D\) yields the
+    claim.
+\end{proof}
+
+\begin{remark}[When does the order-two bound improve over the order-one bound?]
+    Unlike~\autoref{cor:1st-eigenvalue-bound}, the order-two bound is not uniform
+    in \(n\): it depends on the gap \(\Delta_n(D)\), and is therefore meaningful
+    only on boxes where the band \(\varepsilon_n\) is isolated and the gap is
+    not too small. Asymptotically as \(\bm{\delta\mathbf{k}} \to 0\) at fixed
+    gap, the right-hand side of~\eqref{eq:eig-bound-order-2} is
+    \(\mathcal{O}(\|\bm{\delta\mathbf{k}}\|^2)\), whereas the right-hand side of
+    \eqref{eq:eig-bound-tight} controls \(\varepsilon_n - \varepsilon_n(\mathbf{k}_0)\)
+    at order \(\mathcal{O}(\|\bm{\delta\mathbf{k}}\|)\). The order-two bound is
+    therefore preferable on small enough boxes; the crossover scale is roughly
+    \(\|\bm{\delta\mathbf{k}}\| \sim \Delta_n(D) /
+    \|\partial_i H\|_\mathrm{op}\), the inverse of the Hamiltonian Lipschitz
+    constant relative to the gap.
+\end{remark}
+
+\subsection{Bounds on the spectral gap}\label{sec:bounds-gap}
+
+The order-two bound and the derivative bound below involve the inverse of the gap
+\(1/\Delta_n(D)\) throughs second order terms. To make those bounds effective, we need a
+guaranteed strictly positive lower bound on \(\Delta_n(D)\). Two such bounds follow as
+immediate corollaries of the eigenvalue bounds, and a sharper one is obtained from the
+order-two bound.
+
+\begin{corollary}[Lower bounds on the spectral gap]\label{cor:gap-bounds}
+    For any \(\mathbf{k} \in D\) and any \(m \neq n\),
+    \begin{equation}
+        |\varepsilon_n(\mathbf{k}) - \varepsilon_m(\mathbf{k})|
+        \geq |\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)|
+        - |\varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)|
+        - |\varepsilon_m(\mathbf{k}) - \varepsilon_m(\mathbf{k}_0)|.
+        \label{eq:gap-triangle}
+    \end{equation}
+    Bounding the last two terms by~\autoref{lemma:weyl} or by the path
+    bound~\eqref{eq:pathwise-loose} yields, respectively,
+    \begin{align}
+        \Delta_n(D)
+         & \geq \min_{m \neq n}
+        \left( |\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)|
+        - 2 \sup_{\mathbf{q} \in D}
+        \|H(\mathbf{q}) - H(\mathbf{k}_0)\|_\mathrm{op} \right)_+,
+        \label{eq:gap-order-0}  \\[4pt]
+        \Delta_n(D)
+         & \geq \min_{m \neq n}
+        \left( |\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)|
+        - 2 \sup_{\mathbf{q} \in D}
+        \sum_{j=1}^d \|\partial_j H(\mathbf{q})\|_\mathrm{op}\,
+        \delta k_j \right)_+,
+        \label{eq:gap-order-1}
+    \end{align}
+    where \((x)_+ = \max(x, 0)\). The same inequalities hold with
+    \(\|\cdot\|_\mathrm{op}\) replaced by the tighter
+    bound~\eqref{eq:pathwise-tight}.
+\end{corollary}
+
+\begin{remark}
+    Both bounds are informative only when their right-hand side is strictly positive, that
+    is, when the band \(\varepsilon_n\) remains isolated from its neighbours on \(D\). The
+    non-positivity of~\eqref{eq:gap-order-1} can signal near-degeneracies, and trigger a
+    subdivision of \(D\) by Saye's algorithm.
+\end{remark}
+
+A still sharper gap bound can be derived from the order-two eigenvalue
+bound~\eqref{eq:eig-bound-order-2}. Unlike the previous two bounds, this one is
+no longer uniform in \(n\): the band of interest \(\varepsilon_n\) and a
+competing band \(\varepsilon_m\) generally have different remainders.
+
+\begin{corollary}[Order-two lower bound on the spectral gap]\label{cor:gap-order-2}
+    Writing \(L_n(\mathbf{k}) := \sum_i \partial_i \varepsilon_n(\mathbf{k}_0)\,
+    (k_i - k_{0,i})\) for the linear part and
+    \(Q_n(D) := \tfrac{1}{2} \sup_{\mathbf{q} \in D}
+    \sum_{i,j} \mu_{ij}(\mathbf{q})\, \delta k_i\, \delta k_j\) for the quadratic
+    remainder of band \(n\), with \(\mu_{ij}\) defined in~\eqref{eq:mu-def},
+    \begin{equation}
+        \Delta_n(D) \geq \min_{m \neq n}\,\inf_{\mathbf{k} \in D}
+        \left( |\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)
+        + L_n(\mathbf{k}) - L_m(\mathbf{k})|
+        - Q_n(D) - Q_m(D) \right)_+.
+        \label{eq:gap-order-2}
+    \end{equation}
+    The inner infimum of \(L_n - L_m\) over \(\mathbf{k} \in D\) is explicit:
+    being affine in \(\mathbf{k}\), it is attained at a vertex of \(D\).
+\end{corollary}
+
+\begin{proof}
+    Apply~\autoref{cor:2nd-eigenvalue-bound} to bands \(n\) and \(m\):
+    \(\varepsilon_l(\mathbf{k}) = \varepsilon_l(\mathbf{k}_0) + L_l(\mathbf{k})
+    + r_l(\mathbf{k})\) with \(|r_l(\mathbf{k})| \leq R_l(D)\) for
+    \(l \in \{n, m\}\). Then
+    \begin{equation}
+        |\varepsilon_n(\mathbf{k}) - \varepsilon_m(\mathbf{k})|
+        \geq |\varepsilon_n(\mathbf{k}_0) - \varepsilon_m(\mathbf{k}_0)
+        + L_n(\mathbf{k}) - L_m(\mathbf{k})|
+        - |r_n(\mathbf{k})| - |r_m(\mathbf{k})|,
+    \end{equation}
+    by the reverse triangle inequality. Bounding the last two terms by
+    \(Q_n(D)\) and \(Q_m(D)\) and taking the infimum over \(\mathbf{k} \in D\)
+    and the minimum over \(m \neq n\) yields the claim.
+\end{proof}
+
+\paragraph{Circular dependency.}
+The quadratic remainders \(Q_n(D), Q_m(D)\) depend through \(\mu_{ij}\) on a positive
+lower bound on the spectral gap. To break this circularity, the order-two gap
+bound is built on top of the order-one and zero bounds: one first uses
+~\eqref{eq:gap-order-1} to obtain a guaranteed lower bound on \(\Delta_n(D)\),
+uses it to evaluate \(\mu_{ij}\) and \(Q_n(D)\), and then plugs the result
+into~\eqref{eq:gap-order-2} to obtain a sharper estimate. The order-two gap
+bound therefore \emph{refines} an existing certificate of non-degeneracy; it
+cannot create one.
+\begin{remark}
+    Numerically, the bounds are obtained using interval arithmetic.
+\end{remark}
+\subsection{Bounds on eigenvalue derivatives}\label{sec:bounds-derivatives-nondegen}
+
+To certify the applicability of the implicit function theorem in Saye's
+algorithm, and to bound the integrand \(1/|\nabla \varepsilon_n|\)
+of~\eqref{eq:dosgrad}, we need uniform bounds on \(\partial_i \varepsilon_n\)
+on \(D\). They follow from~\autoref{lemma:second-deriv} and a first-order
+Taylor expansion of \(\partial_i \varepsilon_n\) in \(\mathbf{k}\).
+
+\begin{corollary}[First-order bound on eigenvalue derivatives]\label{cor:deriv-bound}
+    Under the assumptions of~\autoref{lemma:second-deriv}, for all
+    \(\mathbf{k} \in D\) and all \(i \in \{1,\dots,d\}\),
+    \begin{equation}
+        |\partial_i \varepsilon_n(\mathbf{k}) - \partial_i
+        \varepsilon_n(\mathbf{k}_0)|
+        \leq \sup_{\mathbf{q} \in D} \sum_{j=1}^d \mu_{ij}(\mathbf{q})\,
+        \delta k_j,
+    \end{equation}
+    with \(\mu_{ij}\) defined in~\eqref{eq:mu-def}.
+\end{corollary}
+
+\begin{proof}
+    Apply Taylor-Lagrange at order \(1\) to \(\partial_i \varepsilon_n\) (which
+    is \(\mathcal{C}^1\) on \(D\) under the non-degeneracy assumption): there
+    exists \(\bm\xi \in [\mathbf{k}_0, \mathbf{k}] \subset D\) such that
+    \begin{equation}
+        \partial_i \varepsilon_n(\mathbf{k}) - \partial_i \varepsilon_n(\mathbf{k}_0)
+        = \sum_{j=1}^d \partial_i \partial_j \varepsilon_n(\bm\xi)\,
+        (k_j - k_{0,j}).
+    \end{equation}
+    Bounding each \(|\partial_i \partial_j \varepsilon_n(\bm\xi)|\) by
+    \(\mu_{ij}(\bm\xi)\) via~\autoref{lemma:second-deriv} and using
+    \(|k_j - k_{0,j}| \leq \delta k_j\) with \(\bm\xi \in D\) yields the claim.
+\end{proof}
+
+\begin{remark}
+    The spectral gap \(\Delta_n(D)\) appears in \(\mu_{ij}\) and must be
+    replaced by a computable lower bound from~\autoref{cor:gap-bounds} or
+    \autoref{cor:gap-order-2}. The bound on \(|\nabla \varepsilon_n|\) is
+    informative only on boxes where this lower bound is strictly positive.
+\end{remark}
+
+\subsection{Theoretical comparison of the bounds}\label{sec:bounds-comparison}
+
+We summarise the bounds derived above and their hierarchy.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+                                     & Sharpness                            &
+        Non-degeneracy               & Easiness to compute                  &
+        Numerically Computable
+        \\
+        \hline
+        \eqref{lemma:weyl}           & \(\mathcal{O}(\delta \mathbf{k})\)   & No  & Uniform     & Yes \\
+        \eqref{eq:eig-bound-tight}   & \(\mathcal{O}(\delta \mathbf{k})\)   & No  & Uniform     & No  \\
+        \eqref{eq:eig-bound-loose}   & \(\mathcal{O}(\delta \mathbf{k})\)   & No  & Uniform     & Yes \\
+        \eqref{eq:eig-bound-order-2} & \(\mathcal{O}(\delta \mathbf{k}^2)\) & Yes & Non-uniform & Yes
+    \end{tabular}
+    \caption{Comparison of the eigenvalue bounds derived in~\autoref{sec:bounds}.}
+    \label{tab:bounds-comparison}
+\end{table}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{l|c|c|c|c}
+        \hline
+        Bound & Sharpness                                  & Needs gap & Uniform in $n$ & Computable \\
+        \hline
+        Weyl (\autoref{lemma:weyl})
+              & $\mathcal{O}(\|\bm{\delta\mathbf{k}}\|)$
+              & No                                         & Yes       & Yes                         \\
+        Tight order-one~\eqref{eq:eig-bound-tight}
+              & $\mathcal{O}(\|\bm{\delta\mathbf{k}}\|)$
+              & No                                         & Yes       & No                          \\
+        Loose order-one~\eqref{eq:eig-bound-loose}
+              & $\mathcal{O}(\|\bm{\delta\mathbf{k}}\|)$
+              & No                                         & Yes       & Yes                         \\
+        Order-two~\eqref{eq:eig-bound-order-2}
+              & $\mathcal{O}(\|\bm{\delta\mathbf{k}}\|^2)$
+              & Yes                                        & No        & Yes                         \\
+        \hline
+    \end{tabular}
+    \caption{Comparison of the eigenvalue bounds of~\autoref{sec:bounds}.
+        \emph{Sharpness}: leading order in the box half-width
+        \(\bm{\delta\mathbf{k}}\). \emph{Needs gap}: whether the bound requires
+        the non-degeneracy assumption \(\Delta_n(D) > 0\). \emph{Uniform in
+            \(n\)}: whether the bound is independent of the band index.
+        \emph{Computable}: whether the bound can be evaluated in interval
+        arithmetic on \(D\), possibly after the Frobenius substitution
+        of~\autoref{sec:frobenius-substitution}. The tight order-one bound resists the
+        Frobenius substitution (\autoref{rem:tight-frobenius}) and is
+        therefore not computable in practice.}
+    \label{tab:bounds-comparison}
+\end{table}
+\section{Numerical evaluation of bounds}\label{sec:numerical-bounds}
+
+The bounds of~\autoref{sec:bounds} are still expressed as suprema, over the
+continuous box \(D\), of operator norms of \(H\) and its derivatives. To make
+them effective, two operations must be replaced by computable proxies:
+\begin{enumerate}
+    \item the operator norm \(\|\cdot\|_\mathrm{op}\), which requires a spectral
+          decomposition and does not propagate well through interval arithmetic;
+    \item the supremum over \(\mathbf{q} \in D\), which is a continuous
+          optimisation problem.
+\end{enumerate}
+We address each point in turn.
+
+\subsection{From operator norm to Frobenius norm}\label{sec:frobenius-substitution}
+
+The Frobenius norm \(\|A\|_F = (\sum_{ij} |A_{ij}|^2)^{1/2}\) is computed
+directly from the matrix entries of \(A\) and is therefore propagated through
+interval arithmetic by standard entrywise operations. The substitution rests
+on the elementary inequality~\eqref{eq:op-vs-frob},
 \begin{equation}
-	P = \ket{\psi_{i}}\bra{\psi_{i}} + \ket{\psi_{j}}\bra{\psi_{j}}
+    \|A\|_\mathrm{op} \leq \|A\|_F \leq \sqrt{M}\,\|A\|_\mathrm{op},
 \end{equation}
-Applying this projector to $H$ yields an effective Hamiltonian $H_{\mathrm{eff}}$ which is a $2\times 2$ Hermitian matrix.
+which trades a factor at most \(\sqrt{M}\) for direct entrywise computability.
+
+Applying the substitution to the loose order-one
+bound~\eqref{eq:eig-bound-loose} yields the practical bound
 \begin{equation}
-	H_{\mathrm{eff}}(\mathbf{k}) = P H(\mathbf{k})P
+    |\varepsilon_n(\mathbf{k}) - \varepsilon_n(\mathbf{k}_0)|
+    \leq \sup_{\mathbf{q} \in D}
+    \sum_{j=1}^d \|\partial_j H(\mathbf{q})\|_F\, \delta k_j.
+    \label{eq:eig-bound-frobenius}
+\end{equation}
+Likewise, the second-derivative bound~\eqref{eq:mu-def} becomes
+\begin{equation}
+    \mu_{ij}^F(\mathbf{q})
+    := \|\partial_i \partial_j H(\mathbf{q})\|_F
+    + \frac{2 \|\partial_i H(\mathbf{q})\|_F\,
+        \|\partial_j H(\mathbf{q})\|_F}{\Delta_n(D)}
+    \geq \mu_{ij}(\mathbf{q}),
+\end{equation}
+and the order-two bound~\eqref{eq:eig-bound-order-2} and derivative
+bound~\autoref{cor:deriv-bound} hold verbatim with \(\mu_{ij}\) replaced by
+\(\mu_{ij}^F\).
+
+\begin{remark}[Why not Frobenius-substitute the tight
+        bound~\eqref{eq:eig-bound-tight}?]\label{rem:tight-frobenius}
+    Naively, one might attempt
+    \begin{equation}
+        \left\| \sum_j |\partial_j H(\mathbf{q})|\, \delta k_j
+        \right\|_\mathrm{op}
+        \leq \left\| \sum_j |\partial_j H(\mathbf{q})|\, \delta k_j
+        \right\|_F
+        \label{eq:tight-frobenius}
+    \end{equation}
+    however the absolute value of a hermitian matrix requires a diagonalisation, which is
+    not stable under interval arithmetic. The bound~\eqref{eq:tight-frobenius} is
+    therefore not computable, and we do not use it.
+\end{remark}
+
+\begin{remark}[Frobenius pessimism in dimension \(M\)]
+    The factor \(\sqrt{M}\) is conservative: it is attained only when all
+    singular values are equal. For a tight-binding model with \(M\) Wannier
+    bands and physically motivated sparsity (most matrix entries small), the
+    actual ratio \(\|A\|_F / \|A\|_\mathrm{op}\) is typically much smaller than
+    \(\sqrt{M}\).
+\end{remark}
+\subsection{Analytic bound from Fourier coefficients}\label{sec:bounds-analytic-fourier}
+
+The Bloch transform~\eqref{eq:bloch-transform} expresses \(H\) as a finite
+trigonometric polynomial in \(\mathbf{k}\). Differentiating term by term,
+\begin{equation}
+    \partial^{\bm\alpha} H(\mathbf{k})
+    = \sum_{\mathbf{R} \in \mathcal{R}}
+    (i\mathbf{R})^{\bm\alpha} \mathrm{e}^{i\mathbf{k}\cdot\mathbf{R}}
+    H_\mathbf{R},
+\end{equation}
+for any multi-index \(\bm\alpha = (\alpha_1, \dots, \alpha_d)\), with
+\((\mathbf{R})^{\bm\alpha} := \prod_l R_l^{\alpha_l}\). The triangle inequality
+on the Frobenius norm, applied entrywise after using \(|\mathrm{e}^{i\mathbf{k}
+    \cdot \mathbf{R}}| = 1\), yields the global bound
+\begin{equation}
+    \sup_{\mathbf{k} \in \mathcal{B}} \|\partial^{\bm\alpha} H(\mathbf{k})\|_F
+    \leq \sum_{\mathbf{R} \in \mathcal{R}}
+    |\mathbf{R}^{\bm\alpha}|\, \|H_\mathbf{R}\|_F.
+    \label{eq:fourier-bound}
+\end{equation}
+This bound is independent of the box \(D\), uniform on the entire Brillouin
+zone, and \emph{precomputable} from the matrix entries of the
+\((H_\mathbf{R})_\mathbf{R}\) at zero asymptotic cost. It directly furnishes
+upper bounds on \(\|\partial_j H\|_F\) (taking \(\bm\alpha = \mathbf{e}_j\)) and
+\(\|\partial_i \partial_j H\|_F\) (taking \(\bm\alpha = \mathbf{e}_i +
+\mathbf{e}_j\)).
+
+\begin{remark}[Pessimism of the Fourier bound]
+    The bound~\eqref{eq:fourier-bound} discards all phase information from
+    \(\mathrm{e}^{i\mathbf{k}\cdot\mathbf{R}}\) and is therefore typically loose,
+    by a factor that grows with the range of the \(H_\mathbf{R}\).
+\end{remark}
+\subsection{Interval arithmetic}\label{sec:interval-arithmetic}
+
+The Frobenius substitution of~\autoref{sec:frobenius-substitution} reduces
+every quantity entering our bounds to an entrywise expression in \(H\) and its
+derivatives. Whenever such an expression must be evaluated as a supremum over a
+box \(D\) — including the Frobenius substitute of
+\(\sup_{\mathbf{q} \in D} \|H(\mathbf{q}) - H(\mathbf{k}_0)\|_\mathrm{op}\)
+appearing in Weyl's inequality (\autoref{lemma:weyl}) and the derivative norms
+\(\sup_{\mathbf{q} \in D} \|\partial^{\bm\alpha} H(\mathbf{q})\|_F\) — we
+propagate guaranteed enclosures through the arithmetic by means of
+\emph{interval arithmetic}~\cite{moore2009introduction}. We recall the elementary
+rules in our setting.
+
+\paragraph{Real intervals.}
+A real interval is a closed connected subset \([a, b] \subset \mathbb{R}\).
+Elementary operations are defined so that the result encloses every value
+attainable from inputs in the operand intervals:
+\begin{align}
+    [a, b] + [c, d]     & = [a + c,\ b + d],                                         \\
+    [a, b] - [c, d]     & = [a - d,\ b - c],                                         \\
+    [a, b] \cdot [c, d] & = \bigl[\min(ac, ad, bc, bd),\ \max(ac, ad, bc, bd)\bigr].
+\end{align}
+Trigonometric functions \(\sin\) and \(\cos\) are evaluated by locating the
+critical points (integer multiples of \(\pi/2\)) inside \([a, b]\): when none
+lie inside, the bounds reduce to the values at the endpoints; otherwise they
+are corrected to \(\pm 1\) accordingly.
+
+\paragraph{Complex intervals.}
+A complex interval is a Cartesian rectangle
+\([a, b] + i\,[c, d] \subset \mathbb{C}\). Addition, subtraction, and
+multiplication reduce to the real-interval rules applied to real and imaginary
+parts. The only nontrivial operation in our setting is the unit-modulus phase
+\begin{equation}
+    \mathrm{e}^{i [a, b]} = \cos[a, b] + i \sin[a, b].
 \end{equation}
 
-Now using the Pauli decomposition for Hermitian matrices yields at $\mathbf{k}$ near $\mathbf{k}_0$ yields
+\paragraph{Application to the Bloch transform.}
+For \(\mathbf{k} \in D\), each \(k_l\) is a real interval
+\([k_{0, l} - \delta k_l,\ k_{0, l} + \delta k_l]\). For each
+\(\mathbf{R} \in \mathcal{R}\), the dot product
+\(\mathbf{k} \cdot \mathbf{R} = \sum_l k_l R_l\) is then a real interval and
+\(\mathrm{e}^{i \mathbf{k} \cdot \mathbf{R}}\) is a complex interval. Term-by-term
+differentiation of~\eqref{eq:bloch-transform} and summation give, for any
+multi-index \(\bm\alpha\), an entrywise complex-interval matrix
+\begin{equation}
+    \bigl[\partial^{\bm\alpha} H(D)\bigr]_{pq}
+    := \sum_{\mathbf{R} \in \mathcal{R}}
+    (i\mathbf{R})^{\bm\alpha}\,
+    \mathrm{e}^{i \mathbf{k} \cdot \mathbf{R}}\,
+    [H_{\mathbf{R}}]_{pq},
+    \label{eq:H-interval-enclosure}
+\end{equation}
+which by construction contains
+\([\partial^{\bm\alpha} H(\mathbf{q})]_{pq}\) for every \(\mathbf{q} \in D\)
+and every \(p, q\). The squared Frobenius norm is then bounded entrywise:
+\begin{equation}
+    \sup_{\mathbf{q} \in D} \|\partial^{\bm\alpha} H(\mathbf{q})\|_F^2
+    \leq \sum_{p, q = 1}^M
+    \max_{z \in [\partial^{\bm\alpha} H(D)]_{pq}} |z|^2,
+    \label{eq:frobenius-interval}
+\end{equation}
+where each maximum is the squared distance from the origin to the farthest
+corner of the complex rectangle, computable in closed form. The same
+construction with \(H(\mathbf{q}) - H(\mathbf{k}_0)\) at entry level
+(interval subtraction with the constant matrix \(H(\mathbf{k}_0)\)) gives
+the Frobenius enclosure that makes Weyl's inequality effective on \(D\),
+and~\eqref{eq:op-vs-frob} converts it back to an operator-norm bound at the
+cost of an extra factor \(\sqrt{M}\).
 
-\begin{equation}
-	H_{\mathrm{eff}}(\mathbf{k}) = a_0(\mathbf{k}) I + \mathbf{a}(\mathbf{k})\cdot \bm{\sigma}
-\end{equation}
-where
-\begin{equation}
-	\bm{\sigma} = (\sigma_1,\sigma_2,\sigma_3) = \left(\begin{pmatrix}0 & 1 \\ 1& 0\end{pmatrix},\begin{pmatrix}0 & i \\ -i& 0\end{pmatrix},\begin{pmatrix}1 & 0 \\ 0& -1\end{pmatrix}\right)
-\end{equation} are the Pauli matrices.\\
-Now for the sake of simplicity let $a_0(\mathbf{k}) = 0$ (as it just shifts both bands equally).
+\begin{remark}[Comparison with the analytic Fourier bound]
+    The Fourier bound~\eqref{eq:fourier-bound}, obtained by the triangle
+    inequality after using \(|\mathrm{e}^{i \mathbf{k} \cdot \mathbf{R}}| = 1\),
+    is recovered from~\eqref{eq:H-interval-enclosure} when the phase
+    \(\mathrm{e}^{i \mathbf{k} \cdot \mathbf{R}}\) is enclosed in the unit disc
+    independently of \(D\). The full interval-arithmetic procedure retains the
+    actual range of the phase on \(D\) and is therefore strictly tighter on
+    small boxes, at the cost of one enclosure computation per \(D\). The
+    Fourier bound, precomputable and box-independent, remains useful at the
+    early stages of the subdivision where its lack of adaptivity is offset by
+    its zero per-box cost.
+\end{remark}
 
-The eigenvalues of such a Hamiltonian are
-\begin{equation}
-	\varepsilon_{\pm}(\mathbf{k}) = \pm \lVert\mathbf{a}(\mathbf{k})\rVert_2
-\end{equation}
-Consequently for general Hamiltonian the only way to have a crossing is such that $\mathbf{a}(\mathbf{k})=\bm{0}$.
-Near the degeneracy (where the bands are still continously differentiable) a first-order Taylor expansion yields
-\begin{equation}
-	\mathbf{a}(\mathbf{k})=\underbrace{\mathbf{a}(\mathbf{k}_0)}_{=0 \text{, since it is the crossing point}} + \nabla_{\mathbf{k}}\mathbf{a}(\mathbf{k_0})\cdot(\mathbf{k}-\mathbf{k}_0) + \mathcal{O}(\lVert \mathbf{k}-\mathbf{k}_0 \rVert^2)
-\end{equation}
-Thus locally around $\mathbf{k}_0$,
 
-\begin{equation}
-	\mathbf{a}(\mathbf{k})\approx \sum_{i=1}^d \frac{\partial \mathbf{a}(\mathbf{k}_0)}{\partial k_i} \delta k_i
-\end{equation}
-However in reality all lattices present symmetries that change this behaviour and crossings of dimension 1 and 2 can happen.
+
+\subsubsection{Sampled bound with Lipschitz correction}\label{sec:bounds-sampling-sup}
+
+An estimate can be obtained by sampling \(\Phi : \mathbf{q} \mapsto \|\partial_j
+H(\mathbf{q})\|_F\) (or any other Frobenius-norm expression in \(H\) and its derivatives)
+on a finite grid in \(D\) and adding a Lipschitz correction.
+
+Let \(N \in \mathbb{N}^*\) and let \(D_N \subset D\) be a uniform discretized D with
+\(N^d\) points such that any \(\mathbf{q}^* \in D\) lies within distance \(\delta k_j /
+N\) of \(D_N\) along each coordinate \(j\).
+
+\begin{theorem}[Guaranteed sampled bound]\label{thm:sampling}
+    Let \(\Phi : D \to \mathbb{R}\) be continuously differentiable, and let
+    \begin{equation}
+        L_j(D) := \sup_{\mathbf{q} \in D} |\partial_j \Phi(\mathbf{q})|,
+        \quad j \in \{1, \dots, d\}.
+    \end{equation}
+    Then
+    \begin{equation}
+        \sup_{\mathbf{q} \in D} \Phi(\mathbf{q})
+        \leq \max_{\mathbf{q} \in D_N} \Phi(\mathbf{q})
+        + \frac{1}{N} \sum_{j=1}^d L_j(D)\, \delta k_j.
+        \label{eq:sampling-guaranteed}
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+    Let \(\mathbf{q}^* \in D\) attain the supremum and \(\mathbf{q} \in D_N\)
+    be such that \(|q_j^* - q_j| \leq \delta k_j / N\) for all \(j\) (such a
+    \(\mathbf{q}\) exists by construction of \(D_N\)). The mean value theorem,
+    applied along the segment from \(\mathbf{q}\) to \(\mathbf{q}^*\) (which
+    lies in \(D\) by convexity), gives
+    \begin{equation}
+        |\Phi(\mathbf{q}^*) - \Phi(\mathbf{q})|
+        \leq \sum_{j=1}^d \sup_{\mathbf{q}'' \in D}
+        |\partial_j \Phi(\mathbf{q}'')|\, |q_j^* - q_j|
+        \leq \frac{1}{N} \sum_{j=1}^d L_j(D)\, \delta k_j.
+    \end{equation}
+    Thus \(\Phi(\mathbf{q}^*) \leq \Phi(\mathbf{q})
+    + \tfrac{1}{N} \sum_j L_j(D)\, \delta k_j
+    \leq \max_{\mathbf{q}' \in D_N} \Phi(\mathbf{q}')
+    + \tfrac{1}{N} \sum_j L_j(D)\, \delta k_j\), which
+    is~\eqref{eq:sampling-guaranteed}.
+\end{proof}
+
+\paragraph{Refined sampling versus subdivision.}
+The bound~\eqref{eq:sampling-guaranteed} contains two contributions: the
+sampled maximum, exact at the grid points, and a correction of order
+\(\mathcal{O}(\|\bm{\delta\mathbf{k}}\|/N)\). As \(N \to \infty\) at fixed box,
+the correction vanishes and the sampled bound converges to the true supremum.
+A natural alternative to refining the sampling is to bisect \(D\) into
+sub-boxes. Doubling \(N\) on \(D\) and halving each \(\delta k_j\) reduce the
+correction by the same factor of \(2\); the two strategies are essentially
+equivalent in terms of accuracy. They differ in the surrounding cost:
+
+
 \newpage
-\bibliographystyle{amsalpha}
-\bibliography{Biblio.bib}
+\section{Effective Hamiltonian and Pauli decomposition}
+\label{sec:Heff}
+
+When two eigenvalues coincide at a point \(\mathbf{k}_c\), the standard
+Rayleigh--Schr\"odinger expansion becomes singular: the denominator
+\(\varepsilon_{n,0}-\varepsilon_{m,0}\) vanishes for the crossing pair.  As a
+consequence, the eigenvalues \(\varepsilon_n(\mathbf{k})\) generically lose
+differentiability at \(\mathbf{k}_c\), even though \(H(\mathbf{k})\) remains smooth
+(in fact analytic in the usual Bloch setting).
+
+The standard remedy is to project onto the degenerate subspace and to diagonalise
+the resulting low-dimensional Hamiltonian explicitly.  Let
+\(\varepsilon_i(\mathbf{k}_c)=\varepsilon_j(\mathbf{k}_c)\) be a doubly degenerate eigenvalue
+with associated orthonormal eigenvectors \(\psi_i(\mathbf{k}_c),\psi_j(\mathbf{k}_c)\),
+and let
+\begin{equation}
+    P(\mathbf{k}_c)=\frac{1}{2\pi i}\oint_{\Gamma}\frac{\mathrm{i} z}{H(\mathbf{k}_c)-z},
+    \label{eq:projector-contour}
+\end{equation}
+where \(\Gamma\) is a small positively oriented contour around the degeneracy.
+Because of the analytic functional calculus, \(P(\mathbf{k}_c)\) is the orthogonal
+projector onto the two-dimensional crossing subspace
+\(\mathcal{E}_c=\operatorname{span}\{\psi_i,\psi_j\}\).
+
+The \emph{effective Hamiltonian} near \(\mathbf{k}_c\) is the \(2\times2\) Hermitian
+matrix
+\begin{equation}
+    H_{\mathrm{eff}}(\mathbf{k})
+    = P(\mathbf{k}_c)\,H(\mathbf{k})\,P(\mathbf{k}_c),
+    \label{eq:Heff}
+\end{equation}
+read in the fixed basis \((\psi_i,\psi_j)\).  Its eigenvalues coincide with the
+two physical crossing eigenvalues of \(H(\mathbf{k})\) to leading order in
+\(\mathbf{k}-\mathbf{k}_c\).  Throughout we work in a small box
+\(D=\mathbf{k}_c+[-\delta k,\delta k]^d\) and we assume an \emph{exterior gap}
+\(\gamma>0\): all other eigenvalues of \(H(\mathbf{k})\) stay at distance at least
+\(\gamma\) from the crossing pair for every \(\mathbf{k}\in D\).
+
+\subsection{Pauli decomposition}
+
+Any \(2\times2\) Hermitian matrix admits a unique decomposition in the basis
+\((I,\sigma_1,\sigma_2,\sigma_3)\), where the Pauli matrices are
+\begin{equation}
+    \sigma_1=\begin{pmatrix}0&1\\1&0\end{pmatrix},
+    \quad
+    \sigma_2=\begin{pmatrix}0&\mathrm{i}\\-\mathrm{i}&0\end{pmatrix},
+    \quad
+    \sigma_3=\begin{pmatrix}1&0\\0&-1\end{pmatrix}.
+\end{equation}
+We write
+\begin{equation}
+    H_{\mathrm{eff}}(\mathbf{k})
+    = a(\mathbf{k})\,I
+    + \mathbf{b}(\mathbf{k})\cdot\bm{\sigma},
+    \qquad a(\mathbf{k})\in\mathbb{R},
+    \quad \mathbf{b}(\mathbf{k})\in\mathbb{R}^3.
+    \label{eq:pauli-decomp}
+\end{equation}
+A direct computation gives the eigenvalues
+\begin{equation}
+    \lambda_{\pm}(\mathbf{k})
+    = a(\mathbf{k})\pm\lVert\mathbf{b}(\mathbf{k})\rVert_2.
+    \label{eq:pauli-eigenvalues}
+\end{equation}
+The two eigenvalues coincide if and only if \(\mathbf{b}(\mathbf{k})=\mathbf{0}\); this
+is a system of three real equations in the \(d\)-imensional parameter
+\(\mathbf{k}\).  For a generic Hamiltonian, crossings therefore occur on a set of
+codimension \(3\): they are absent in \(d\le 2\) and form isolated points in \(d=3\)
+(Weyl points).
+
+In real materials, symmetries can constrain some components of \(\mathbf{b}\) to
+vanish identically along high-symmetry submanifolds of the Brillouin zone,
+lowering the effective codimension of the crossing condition.  Crossings of
+codimension \(2\) (nodal lines) or codimension \(1\) (nodal surfaces) then become
+possible and persist under any symmetry-preserving perturbation of \(H\).
+
+\subsection{Linear expansion of the Pauli vector}
+
+A first-order Taylor expansion of \(\mathbf{b}\) around the crossing point
+\(\mathbf{k}_c\), where \(\mathbf{b}(\mathbf{k}_c)=\mathbf{0}\), yields
+\begin{equation}
+    \mathbf{b}(\mathbf{k})
+    =\sum_{i=1}^{d}\frac{\partial\mathbf{b}(\mathbf{k}_c)}{\partial k_i}\,
+    \delta k_i
+    +\mathcal{O}\!\bigl(\lVert\delta\mathbf{k}\rVert^2\bigr),
+    \qquad \delta\mathbf{k}:=\mathbf{k}-\mathbf{k}_c.
+\end{equation}
+It is convenient to introduce the \(3\times d\) Jacobian matrix
+\begin{equation}
+    M_{i,j}:=\frac{\partial b_i}{\partial k_j}(\mathbf{k}_c),
+    \qquad i=1,2,3,\quad j=1,\dots,d,
+    \label{eq:Jacobi-M}
+\end{equation}
+so that, to leading order,
+\begin{equation}
+    \mathbf{b}(\mathbf{k}) = M\,\delta\mathbf{k}
+    +\mathcal{O}\!\bigl(\lVert\delta\mathbf{k}\rVert^2\bigr).
+    \label{eq:b-linear}
+\end{equation}
+
+Combined with \eqref{eq:pauli-eigenvalues}, the local description of the two
+crossing bands is
+\begin{equation}
+    \lambda_{\pm}(\mathbf{k})-a(\mathbf{k}_c)
+    \approx \pm\Bigl\lVert\sum_{i=1}^{d}
+    \frac{\partial\mathbf{b}(\mathbf{k}_c)}{\partial k_i}\,
+    \delta k_i\Bigr\rVert_2
+    \label{eq:local-cone}
+\end{equation}
+
+\sloppy
+\printbibliography % chktex 1
+\fussy
 \end{document}
