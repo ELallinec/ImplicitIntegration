@@ -3,59 +3,54 @@ name: Deploy PDF
 on:
   push:
     branches: [main]
+    paths:
+      - '*.tex'
+      - '*.bib'
+      - '*.sty'
+      - '*.cls'
+      - 'Images/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build
-        uses: xu-cheng/latex-action@v2
+      - name: Cache LaTeX build files
+        uses: actions/cache@v4
+        with:
+          path: |
+            *.aux
+            *.fdb_latexmk
+            *.fls
+            *.log
+            *.out
+            *.toc
+            *.synctex.gz
+          key: latex-${{ runner.os }}-${{ hashFiles('**/*.tex', '**/*.bib', '**/*.sty', '**/*.cls') }}
+          restore-keys: |
+            latex-${{ runner.os }}-
+
+      - name: Compile PDF
+        uses: xu-cheng/latex-action@v3
         with:
           root_file: ImplicitIntegration.tex
 
-      - name: Copy
+      - name: Prepare deployment folder
         run: |
           mkdir -p out
-          cp ./ImplicitIntegration.pdf ./out/ImplicitIntegration.pdf
+          cp ImplicitIntegration.pdf out/
 
-      - uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          name: ImplicitIntegration
-          path: out/ImplicitIntegration.pdf
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build
-        uses: xu-cheng/latex-action@v2
-        with:
-          root_file: ImplicitIntegration.tex
-
-      - name: Copy
-        run: |
-          mkdir -p out
-          cp ./ImplicitIntegration.pdf ./out/ImplicitIntegration.pdf
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@3.6.2
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          CLEAN: true
-          SINGLE_COMMIT: true
-          FOLDER: out
-          GIT_CONFIG_NAME: ELallinec
-          GIT_CONFIG_EMAIL: ewen.lallinec@universite-paris-saclay.fr
+          branch: gh-pages
+          folder: out
+          clean: true
+          single-commit: true
